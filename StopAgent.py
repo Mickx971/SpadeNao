@@ -26,6 +26,10 @@ class AgentKiller(spade.Agent.Agent):
         self.addBehaviour(self.Kill())
 
 if __name__ == "__main__":
+
+    if len(sys.argv) != 2:
+        raise RuntimeError("No victim to kill")
+
     killer = AgentKiller("killer@192.168.43.170", "secret")
     killer.setVictim(sys.argv[1])
     killer.start()

@@ -20,6 +20,25 @@ class Behaviour(spade.Behaviour.Behaviour):
         pass
 
 
+class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
+    def __init__(self, name, period, ontology=None):
+        super(PeriodicBehaviour, self).__init__(period)
+        self.name = name
+        self.ontology = ontology
+
+    def haveOntology(self):
+        return self.ontology is not None
+
+    def getOntology(self):
+        return self.ontology
+
+    def getName(self):
+        return self.name
+
+    def _onTick(self):
+        pass
+
+
 class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
     def __init__(self, name, ontology=None):
         super(OneShotBehaviour, self).__init__()
@@ -77,18 +96,19 @@ class FSMBehaviour(spade.Behaviour.FSMBehaviour):
         return self.name
 
 
-class Agent(spade.Agent.Agent):
+class Agent(spade.Agent.BDIAgent):
 
-    def __init__(self, name, host, secret, behaviours):
+    def __init__(self, name, host, secret, behaviours, initKB):
         super(Agent, self).__init__(name + "@" + host, secret)
         self.localName = name
         self.host = host
         self.name = self.localName + "@" + self.host
         self.behaviours = dict()
+        self.initKB = initKB
         for behaviour in behaviours:
             self.behaviours[behaviour.getName()] = behaviour
 
-    def _setup(self):
+    def initBehaviours(self):
         for behaviour in self.behaviours.itervalues():
             if behaviour.haveOntology():
                 template = spade.Behaviour.ACLTemplate()
@@ -96,3 +116,12 @@ class Agent(spade.Agent.Agent):
                 self.addBehaviour(behaviour, spade.Behaviour.MessageTemplate(template))
             else:
                 self.addBehaviour(behaviour)
+
+    def initKnowledgeBase(self):
+        self.configureKB("SWI", None, "swipl")
+        for fact in self.initKB:
+            self.addBelieve(fact)
+
+    def _setup(self):
+        self.initBehaviours()
+        self.initKnowledgeBase()
