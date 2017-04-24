@@ -1,27 +1,29 @@
 import sys
 import spade
-from community.Agent import Agent
 
 
-class AgentKiller(Agent):
+class AgentKiller(spade.Agent.Agent):
 
-    def __init__(self, name, secret):
-        super(AgentKiller, self).__init__(name, secret)
-        self.msg = spade.ACLMessage.ACLMessage()  # Instantiate the message
-        self.msg.setPerformative("request")
-        self.msg.setOntology("system")
-        self.msg.setContent("stop")
-        self.victim = None
+    class Kill(spade.Behaviour.OneShotBehaviour):
+        def _process(self):
+            try:
+                receiver = spade.AID.aid(name=self.myAgent.victim, addresses=["xmpp://" + self.myAgent.victim])
+                self.myAgent.msg.addReceiver(receiver)
+                self.myAgent.send(self.myAgent.msg)
+                self.myAgent.stop()
+            except Exception as e:
+                print "Unexpected error:", type(e)
+                print e
 
     def setVictim(self, victim):
         self.victim = victim
 
-    def initAgent(self):
-        print self.victim
-        receiver = spade.AID.aid(name=self.victim, addresses=["xmpp://" + self.victim])
-        self.msg.addReceiver(receiver)
-        self.send(self.msg)
-        self.stop()
+    def _setup(self):
+        self.msg = spade.ACLMessage.ACLMessage()  # Instantiate the message
+        self.msg.setPerformative("request")
+        self.msg.setOntology("system")
+        self.msg.setContent("stop")
+        self.addBehaviour(self.Kill())
 
 if __name__ == "__main__":
     killer = AgentKiller("killer@192.168.43.170", "secret")
