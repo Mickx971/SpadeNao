@@ -1,7 +1,7 @@
 import spade
 import sys
 #from naoqi import ALProxy
-from community.Agent import Agent
+from community.core import Agent
 
 
 class MainBehaviour(spade.Behaviour.PeriodicBehaviour):
