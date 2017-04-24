@@ -96,7 +96,7 @@ class FSMBehaviour(spade.Behaviour.FSMBehaviour):
         return self.name
 
 
-class Agent(spade.Agent.BDIAgent):
+class Agent(spade.Agent.Agent):
 
     def __init__(self, name, host, secret, behaviours, initKB):
         super(Agent, self).__init__(name + "@" + host, secret)
@@ -119,9 +119,18 @@ class Agent(spade.Agent.BDIAgent):
 
     def initKnowledgeBase(self):
         self.configureKB("SWI", None, "swipl")
+        self.kb.ask("set_prolog_flag(unknown, fail)")
         for fact in self.initKB:
             self.addBelieve(fact)
 
     def _setup(self):
         self.initBehaviours()
         self.initKnowledgeBase()
+
+    def askBelieve(self, sentence):
+        try:
+            return super(Agent, self).askBelieve(sentence)
+        except Exception as e:
+            print "Unexpected error:", type(e)
+            print e
+            return False

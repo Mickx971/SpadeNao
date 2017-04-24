@@ -47,10 +47,10 @@ class SystemCore(Behaviour):
 
     def onStart(self):
         print "Core behaviour started"
-        self.registerToJadePlatform()
+        #self.registerToJadePlatform()
 
     def onEnd(self):
-        self.deregisterToJadePlatform()
+        #self.deregisterToJadePlatform()
         print "Core behaviour ended"
 
     def _process(self):
