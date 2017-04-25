@@ -105,6 +105,7 @@ class Agent(spade.Agent.Agent):
         self.name = self.localName + "@" + self.host
         self.behaviours = dict()
         self.initKB = initKB
+        self.kbClosed = True
         for behaviour in behaviours:
             self.behaviours[behaviour.getName()] = behaviour
 
@@ -118,6 +119,7 @@ class Agent(spade.Agent.Agent):
                 self.addBehaviour(behaviour)
 
     def initKnowledgeBase(self):
+        self.kbClosed = False
         self.configureKB("SWI", None, "swipl")
         self.kb.ask("set_prolog_flag(unknown, fail)")
         for fact in self.initKB:
@@ -134,3 +136,11 @@ class Agent(spade.Agent.Agent):
             print "Unexpected error:", type(e)
             print e
             return False
+
+    def takeDown(self):
+        if not self.kbClosed:
+            self.kbClosed = True
+            try:
+                self.kb.ask("halt.")
+            except:
+                pass
