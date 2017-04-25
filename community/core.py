@@ -106,6 +106,7 @@ class Agent(spade.Agent.Agent):
         self.behaviours = dict()
         self.initKB = initKB
         self.kbClosed = True
+        self.beliefListener = dict()
         for behaviour in behaviours:
             self.behaviours[behaviour.getName()] = behaviour
 
@@ -129,9 +130,25 @@ class Agent(spade.Agent.Agent):
         self.initBehaviours()
         self.initKnowledgeBase()
 
+    def addBeliefListener(self, listener):
+        self.beliefListener[listener] = listener
+
+    def removeBeliefListener(self, listener):
+        self.beliefListener.pop(listener, None)
+
     def askBelieve(self, sentence):
         try:
             return super(Agent, self).askBelieve(sentence)
+        except Exception as e:
+            print "Unexpected error:", type(e)
+            print e
+            return False
+
+    def addBelieve(self, sentence, typeAction="insert"):
+        try:
+            super(Agent, self).addBelieve(sentence, typeAction)
+            for listener in self.beliefListener.itervalues():
+                listener.onBeliefChanged(sentence)
         except Exception as e:
             print "Unexpected error:", type(e)
             print e
@@ -144,3 +161,9 @@ class Agent(spade.Agent.Agent):
                 self.kb.ask("halt.")
             except:
                 pass
+
+    def getTaskExecutor(self):
+        try:
+            return self.behaviours["TaskExecutor"]
+        except KeyError:
+            raise Exception("No TaskExecutor behaviour found in agent")
