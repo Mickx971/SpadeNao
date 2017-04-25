@@ -1,4 +1,5 @@
 import spade
+import traceback
 
 
 class Behaviour(spade.Behaviour.Behaviour):
@@ -16,8 +17,15 @@ class Behaviour(spade.Behaviour.Behaviour):
     def getName(self):
         return self.name
 
-    def _process(self):
+    def process(self):
         pass
+
+    def _process(self):
+        try:
+            self.process()
+        except:
+            traceback.print_exc()
+
 
 
 class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
@@ -35,8 +43,14 @@ class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
     def getName(self):
         return self.name
 
-    def _onTick(self):
+    def onTick(self):
         pass
+
+    def _onTick(self):
+        try:
+            self.onTick()
+        except:
+            traceback.print_exc()
 
 
 class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
@@ -54,8 +68,14 @@ class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
     def getName(self):
         return self.name
 
-    def _process(self):
+    def process(self):
         pass
+
+    def _process(self):
+        try:
+            self.process()
+        except:
+            traceback.print_exc()
 
     def done(self):
         return True
@@ -76,8 +96,14 @@ class EventBehaviour(spade.Behaviour.EventBehaviour):
     def getName(self):
         return self.name
 
-    def _process(self):
+    def process(self):
         pass
+
+    def _process(self):
+        try:
+            self.process()
+        except:
+            traceback.print_exc()
 
 
 class FSMBehaviour(spade.Behaviour.FSMBehaviour):
@@ -94,6 +120,15 @@ class FSMBehaviour(spade.Behaviour.FSMBehaviour):
 
     def getName(self):
         return self.name
+
+    def process(self):
+        pass
+
+    def _process(self):
+        try:
+            self.process()
+        except:
+            traceback.print_exc()
 
 
 class Agent(spade.Agent.Agent):
@@ -139,20 +174,16 @@ class Agent(spade.Agent.Agent):
     def askBelieve(self, sentence):
         try:
             return super(Agent, self).askBelieve(sentence)
-        except Exception as e:
-            print "Unexpected error:", type(e)
-            print e
-            return False
+        except:
+            traceback.print_exc()
 
     def addBelieve(self, sentence, typeAction="insert"):
         try:
             super(Agent, self).addBelieve(sentence, typeAction)
             for listener in self.beliefListener.itervalues():
                 listener.onBeliefChanged(sentence)
-        except Exception as e:
-            print "Unexpected error:", type(e)
-            print e
-            return False
+        except:
+            traceback.print_exc()
 
     def takeDown(self):
         if not self.kbClosed:
@@ -163,7 +194,8 @@ class Agent(spade.Agent.Agent):
                 pass
 
     def getTaskExecutor(self):
-        try:
-            return self.behaviours["TaskExecutor"]
-        except KeyError:
-            raise Exception("No TaskExecutor behaviour found in agent")
+        executor = "TaskExecutor"
+        if executor in self.behaviours:
+            return self.behaviours[executor]
+        else:
+            print "Error: No TaskExecutor behaviour found in agent"

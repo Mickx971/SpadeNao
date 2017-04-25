@@ -6,5 +6,5 @@ class Communicator(Behaviour):
     def __init__(self):
         super(Communicator, self).__init__("Communicator")
 
-    def _process(self):
+    def process(self):
         pass

@@ -1,4 +1,5 @@
 from Queue import Queue
+from Queue import Empty
 from community.core import Behaviour
 
 
@@ -16,6 +17,9 @@ class TaskExecutor(Behaviour):
     def addTask(self, task):
         self.waitingTasks.put(task)
 
-    def _process(self):
-        task = self.waitingTasks.get(True)
-        task.run()
+    def process(self):
+        try:
+            task = self.waitingTasks.get(True, 3)
+            task.run()
+        except Empty:
+            pass

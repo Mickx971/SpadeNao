@@ -1,5 +1,6 @@
 from community.core import Agent
 from community.behaviours.system import SystemCore
+from community.behaviours.executor import TaskExecutor
 
 
 class AgentBuilder:
@@ -31,6 +32,10 @@ class AgentBuilder:
 
     def addBehaviour(self, behaviour):
         self.behaviours.append(behaviour)
+        return self
+
+    def addTaskExcutor(self):
+        self.behaviours.append(TaskExecutor())
         return self
 
     def addFact(self, fact):

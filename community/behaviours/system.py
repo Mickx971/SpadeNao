@@ -53,17 +53,12 @@ class SystemCore(Behaviour):
         #self.deregisterToJadePlatform()
         print "Core behaviour ended"
 
-    def _process(self):
-        try:
-            msg = self._receive(True)
-            if msg is not None:
-                print msg.getSender()
-                for receiver in msg.getReceivers():
-                    print receiver
-                action = self.actions.get(msg.getContent())
-                if action is not None:
-                    action()
-        except Exception as e:
-            print "Core:"
-            print "Unexpected error:", type(e)
-            print e
+    def process(self):
+        msg = self._receive(True)
+        if msg is not None:
+            print msg.getSender()
+            for receiver in msg.getReceivers():
+                print receiver
+            action = self.actions.get(msg.getContent())
+            if action is not None:
+                action()

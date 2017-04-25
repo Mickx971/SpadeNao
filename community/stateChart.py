@@ -1,10 +1,6 @@
 from collections import defaultdict
 from community.core import Behaviour
-
-
-class Task:
-    def run(self):
-        raise NotImplementedError
+from community.structure import Task
 
 
 class State(Task):
@@ -23,7 +19,7 @@ class State(Task):
 
 class Transition:
 
-    class State:
+    class Status:
         WAITING = 0
         RUNNING = 1
         FINISHED = 2
@@ -37,19 +33,19 @@ class Transition:
 class TransitionInstance:
     def __init__(self, transition):
         self.transition = transition
-        self.status = Transition.State.WAITING
+        self.status = Transition.Status.WAITING
 
     def isDone(self):
-        return self.status == Transition.State.FINISHED
+        return self.status == Transition.Status.FINISHED
 
     def done(self):
-        self.status = Transition.State.FINISHED
+        self.status = Transition.Status.FINISHED
 
     def setRunning(self):
-        self.status = Transition.State.RUNNING
+        self.status = Transition.Status.RUNNING
 
     def isWaiting(self):
-        return self.status == Transition.State.WAITING
+        return self.status == Transition.Status.WAITING
 
     def getCondition(self):
         return self.transition.condition
@@ -62,6 +58,9 @@ class TransitionInstance:
 
 
 class BeliefListener:
+    def __init__(self):
+        pass
+
     def onBeliefChanged(self, sentence):
         raise NotImplementedError
 
@@ -75,19 +74,19 @@ class MultiChoiceTransition:
 class MultiChoiceTransitionInstance:
     def __init__(self, transition):
         self.transition = transition
-        self.status = Transition.State.WAITING
+        self.status = Transition.Status.WAITING
 
     def isDone(self):
-        return self.status == Transition.State.FINISHED
+        return self.status == Transition.Status.FINISHED
 
     def done(self):
-        self.status = Transition.State.FINISHED
+        self.status = Transition.Status.FINISHED
 
     def setRunning(self):
-        self.status = Transition.State.RUNNING
+        self.status = Transition.Status.RUNNING
 
     def isWaiting(self):
-        return self.status == Transition.State.WAITING
+        return self.status == Transition.Status.WAITING
 
     def getCondition(self):
         return self.transition.choices
@@ -105,9 +104,6 @@ class MultiChoiceCondition:
     def setOutState(self, outState):
         self.isSetted = True
         self.outState = outState
-
-    def isSetted(self):
-        return self.isSetted
 
 
 class MultiChoiceTransitionBuilder:
@@ -165,22 +161,23 @@ class MultiChoiceTransitionBuilder:
             raise RuntimeError("IfCondition not yet called")
 
     def create(self):
-        if self.inState is not None and self.ifDone and self.inStateSetted and all(choice.isSetted() for choice in self.choices):
+        if self.inState is not None and self.ifDone and self.inStateSetted and all(choice.isSetted for choice in self.choices):
             self.stateChart.addMultiChoiceTransition(MultiChoiceTransition(self.inState, self.choices))
         else:
             raise RuntimeError("Fail to create MultiChoiceTransition")
-
 
 
 class StateChart(Behaviour, BeliefListener):
     def __init__(self, name):
         super(StateChart, self).__init__(name)
         self.states = dict()
-        self.start = None
+        self.startState = None
         self.transitions = defaultdict(list)
         self.waitingTransitions = list()
+        self.started = False
 
     def onStart(self):
+        print "Liveness statechart started"
         self.myAgent.addBeliefListener(self)
 
     def onEnd(self):
@@ -191,7 +188,7 @@ class StateChart(Behaviour, BeliefListener):
         self.states[name] = state
 
     def setStartingPoint(self, stateName):
-        self.start = self.states[stateName]
+        self.startState = self.states[stateName]
 
     def createTransition(self, fromStateName, toStateName, conditionSentence=None):
         s1 = self.states[fromStateName]
@@ -202,17 +199,16 @@ class StateChart(Behaviour, BeliefListener):
         return MultiChoiceTransitionBuilder(self)
 
     def addMultiChoiceTransition(self, multiChoiceTransition):
-        self.transitions[multiChoiceTransition.inState] = list(multiChoiceTransition)
+        self.transitions[multiChoiceTransition.inState].append(multiChoiceTransition)
 
     def onActionPerformed(self, state):
         for transition in self.transitions[state]:
-            transitionType = type(transition)
-            if transitionType is Transition:
+            if isinstance(transition, Transition):
                 self.performParallelTransition(transition)
-            elif transitionType is MultiChoiceTransition:
+            elif isinstance(transition, MultiChoiceTransition):
                 self.performMultiChoiceTransition(transition)
             else:
-                raise Exception("Unknown transition type: " + transitionType)
+                raise Exception("Unknown transition type")
 
     def performParallelTransition(self, transition):
         if transition.condition is None:
@@ -240,13 +236,12 @@ class StateChart(Behaviour, BeliefListener):
     def onBeliefChanged(self, sentence):
         for transition in self.waitingTransitions:
             if transition.isWaiting():
-                transitionType = type(transition)
-                if transitionType is TransitionInstance:
+                if isinstance(transition, TransitionInstance):
                     self.tryToExecuteTransition(transition)
-                elif transitionType is MultiChoiceTransition:
+                elif isinstance(transition, MultiChoiceTransition):
                     self.tryToExecuteMultiChoiceTransition(transition)
                 else:
-                    raise Exception("Unknown transition type: " + transitionType)
+                    raise Exception("Unknown transitionInstance type")
 
         self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
 
@@ -262,30 +257,7 @@ class StateChart(Behaviour, BeliefListener):
                 self.executeState(choice.outState)
                 break
 
-if __name__ == "__main__":
-
-    def printCoucou():
-        print "coucou 1"
-
-    def printBonjour():
-        print "bonjour 2"
-
-    def printHello():
-        print "hello 3"
-
-    def printHola():
-        print "hola 4"
-
-    st = StateChart("Lifeness")
-    st.createState("first", printCoucou)
-    st.createState("second", printBonjour)
-    st.createState("third", printHello)
-    st.createState("forth", printHola)
-    st.createTransition("first", "second")
-    st.createMultiChoiceTransition()\
-        .fromState("second")\
-            .ifCondition("condition(un)").goTo("third") \
-            .elifCondition("condition(deux)").goTo("third")\
-            .elseCondition().goTo("forth")\
-        .create()
-    st.setStartingPoint("first")
+    def process(self):
+        if not self.started:
+            self.started = True
+            self.executeState(self.startState)
