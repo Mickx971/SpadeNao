@@ -159,11 +159,18 @@ class Agent(spade.Agent.Agent):
         self.configureKB("SWI", None, "swipl")
         self.kb.ask("set_prolog_flag(unknown, fail)")
         for fact in self.initKB:
+            print "add fact: ", fact
             self.addBelieve(fact)
+        #Very important: initialize swipl connection
+        self.askBelieve("true")
+        print "Database opened"
 
     def _setup(self):
-        self.initBehaviours()
-        self.initKnowledgeBase()
+        try:
+            self.initKnowledgeBase()
+            self.initBehaviours()
+        except:
+            traceback.print_exc()
 
     def addBeliefListener(self, listener):
         self.beliefListener[listener] = listener
@@ -172,24 +179,19 @@ class Agent(spade.Agent.Agent):
         self.beliefListener.pop(listener, None)
 
     def askBelieve(self, sentence):
-        try:
-            return super(Agent, self).askBelieve(sentence)
-        except:
-            traceback.print_exc()
+        return super(Agent, self).askBelieve(sentence)
 
     def addBelieve(self, sentence, typeAction="insert"):
-        try:
-            super(Agent, self).addBelieve(sentence, typeAction)
-            for listener in self.beliefListener.itervalues():
-                listener.onBeliefChanged(sentence)
-        except:
-            traceback.print_exc()
+        super(Agent, self).addBelieve(sentence, typeAction)
+        for listener in self.beliefListener.itervalues():
+            listener.onBeliefChanged(sentence)
 
     def takeDown(self):
         if not self.kbClosed:
             self.kbClosed = True
             try:
                 self.kb.ask("halt.")
+                print "Database closed"
             except:
                 pass
 

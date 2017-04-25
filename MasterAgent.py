@@ -3,7 +3,6 @@
 #tts = ALProxy("ALTextToSpeech", "192.168.43.102", 9559)
 #tts.say("Bonjour tout le monde!")
 from community.builder import AgentBuilder
-from community.behaviours.dummy.PeriodicLogger import MainBehaviour
 from community.stateChart import StateChart
 
 if __name__ == "__main__":
@@ -20,7 +19,7 @@ if __name__ == "__main__":
     def printHola():
         print "hola 4"
 
-    st = StateChart("Livenes")
+    st = StateChart("Liveness")
     st.createState("first", printCoucou)
     st.createState("second", printBonjour)
     st.createState("third", printHello)
@@ -36,7 +35,7 @@ if __name__ == "__main__":
 
     nao = AgentBuilder()\
         .setName("nao1")\
-        .setPlatform("192.168.43.170")\
+        .setPlatform("127.0.0.1")\
         .setSecret("secret")\
         .addTaskExcutor()\
         .addBehaviour(st)\

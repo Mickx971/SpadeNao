@@ -218,14 +218,14 @@ class StateChart(Behaviour, BeliefListener):
 
     def performMultiChoiceTransition(self, transition):
         for choice in transition.choices:
-            if self.myAgent.askBelieve(choice.sentence) is True:
+            if choice.sentence is None or self.myAgent.askBelieve(choice.sentence):
                 self.executeState(choice.outState)
                 break
         else:
             self.prepareTransition(MultiChoiceTransitionInstance(transition))
 
     def prepareTransition(self, transition):
-        if type(transition) is TransitionInstance and self.myAgent.askBelieve(transition.getCondition()) is True:
+        if isinstance(transition, TransitionInstance) and self.myAgent.askBelieve(transition.getCondition()) is True:
             self.executeState(transition.getOutState())
         else:
             self.waitingTransitions.append(transition)
@@ -252,7 +252,7 @@ class StateChart(Behaviour, BeliefListener):
 
     def tryToExecuteMultiChoiceTransition(self, transition):
         for choice in transition.choices:
-            if self.myAgent.askBelieve(choice.sentence) is True:
+            if choice.sentence is None or self.myAgent.askBelieve(choice.sentence):
                 transition.setRunning()
                 self.executeState(choice.outState)
                 break
