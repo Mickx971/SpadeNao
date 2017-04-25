@@ -66,6 +66,112 @@ class BeliefListener:
         raise NotImplementedError
 
 
+class MultiChoiceTransition:
+    def __init__(self, inState, choices):
+        self.inState = inState
+        self.choices = choices
+
+
+class MultiChoiceTransitionInstance:
+    def __init__(self, transition):
+        self.transition = transition
+        self.status = Transition.State.WAITING
+
+    def isDone(self):
+        return self.status == Transition.State.FINISHED
+
+    def done(self):
+        self.status = Transition.State.FINISHED
+
+    def setRunning(self):
+        self.status = Transition.State.RUNNING
+
+    def isWaiting(self):
+        return self.status == Transition.State.WAITING
+
+    def getCondition(self):
+        return self.transition.choices
+
+    def getInState(self):
+        return self.transition.inState
+
+
+class MultiChoiceCondition:
+    def __init__(self, sentence):
+        self.sentence = sentence
+        self.outState = None
+        self.isSetted = False
+
+    def setOutState(self, outState):
+        self.isSetted = True
+        self.outState = outState
+
+    def isSetted(self):
+        return self.isSetted
+
+
+class MultiChoiceTransitionBuilder:
+
+    class MultiChoiceConditionBuilder:
+        def __init__(self, multiChoice, sentence=None):
+            self.choice = MultiChoiceCondition(sentence)
+            self.isSetted = False
+            self.multiChoice = multiChoice
+
+        def goTo(self, outStateName):
+            self.choice.setOutState(self.multiChoice.stateChart.states[outStateName])
+            return self.multiChoice
+
+    def __init__(self, stateChart):
+        self.stateChart = stateChart
+        self.inState = None
+        self.ifDone = False
+        self.elseDone = False
+        self.inStateSetted = False
+        self.choices = list()
+
+    def fromState(self, name):
+        if not self.inStateSetted:
+            self.inStateSetted = True
+            self.inState = self.stateChart.states[name]
+            return self
+        else:
+            raise RuntimeError("fromState already setted")
+
+    def ifCondition(self, sentence):
+        if not self.ifDone :
+            self.ifDone = True
+            builder = self.MultiChoiceConditionBuilder(self, sentence)
+            self.choices.append(builder.choice)
+            return builder
+        else:
+            raise RuntimeError("IfCondition already called")
+
+    def elifCondition(self, sentence):
+        if self.ifDone and not self.elseDone:
+            builder = self.MultiChoiceConditionBuilder(self, sentence)
+            self.choices.append(builder.choice)
+            return builder
+        else:
+            raise RuntimeError("IfCondition not yet called")
+
+    def elseCondition(self):
+        if self.ifDone and not self.elseDone:
+            self.elseDone = True
+            builder = self.MultiChoiceConditionBuilder(self)
+            self.choices.append(builder.choice)
+            return builder
+        else:
+            raise RuntimeError("IfCondition not yet called")
+
+    def create(self):
+        if self.inState is not None and self.ifDone and self.inStateSetted and all(choice.isSetted() for choice in self.choices):
+            self.stateChart.addMultiChoiceTransition(MultiChoiceTransition(self.inState, self.choices))
+        else:
+            raise RuntimeError("Fail to create MultiChoiceTransition")
+
+
+
 class StateChart(Behaviour, BeliefListener):
     def __init__(self, name):
         super(StateChart, self).__init__(name)
@@ -81,7 +187,7 @@ class StateChart(Behaviour, BeliefListener):
         self.myAgent.removeBeliefListener(self)
 
     def createState(self, name, action):
-        state = State(name, action)
+        state = State(self, name, action)
         self.states[name] = state
 
     def setStartingPoint(self, stateName):
@@ -92,15 +198,38 @@ class StateChart(Behaviour, BeliefListener):
         s2 = self.states[toStateName]
         self.transitions[s1].append(Transition(s1, s2, conditionSentence))
 
+    def createMultiChoiceTransition(self):
+        return MultiChoiceTransitionBuilder(self)
+
+    def addMultiChoiceTransition(self, multiChoiceTransition):
+        self.transitions[multiChoiceTransition.inState] = list(multiChoiceTransition)
+
     def onActionPerformed(self, state):
         for transition in self.transitions[state]:
-            if transition.condition is None:
-                self.executeState(transition.outState)
+            transitionType = type(transition)
+            if transitionType is Transition:
+                self.performParallelTransition(transition)
+            elif transitionType is MultiChoiceTransition:
+                self.performMultiChoiceTransition(transition)
             else:
-                self.prepareTransition(TransitionInstance(transition))
+                raise Exception("Unknown transition type: " + transitionType)
+
+    def performParallelTransition(self, transition):
+        if transition.condition is None:
+            self.executeState(transition.outState)
+        else:
+            self.prepareTransition(TransitionInstance(transition))
+
+    def performMultiChoiceTransition(self, transition):
+        for choice in transition.choices:
+            if self.myAgent.askBelieve(choice.sentence) is True:
+                self.executeState(choice.outState)
+                break
+        else:
+            self.prepareTransition(MultiChoiceTransitionInstance(transition))
 
     def prepareTransition(self, transition):
-        if self.myAgent.askBelieve(transition.getCondition()) is True:
+        if type(transition) is TransitionInstance and self.myAgent.askBelieve(transition.getCondition()) is True:
             self.executeState(transition.getOutState())
         else:
             self.waitingTransitions.append(transition)
@@ -110,23 +239,53 @@ class StateChart(Behaviour, BeliefListener):
 
     def onBeliefChanged(self, sentence):
         for transition in self.waitingTransitions:
-            if transition.isWaiting() and self.myAgent.askBelieve(transition.getCondition()) is True:
-                transition.setRunning()
-                self.executeState(transition.getOutState())
+            if transition.isWaiting():
+                transitionType = type(transition)
+                if transitionType is TransitionInstance:
+                    self.tryToExecuteTransition(transition)
+                elif transitionType is MultiChoiceTransition:
+                    self.tryToExecuteMultiChoiceTransition(transition)
+                else:
+                    raise Exception("Unknown transition type: " + transitionType)
 
         self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
 
+    def tryToExecuteTransition(self, transition):
+        if self.myAgent.askBelieve(transition.getCondition()) is True:
+            transition.setRunning()
+            self.executeState(transition.getOutState())
+
+    def tryToExecuteMultiChoiceTransition(self, transition):
+        for choice in transition.choices:
+            if self.myAgent.askBelieve(choice.sentence) is True:
+                transition.setRunning()
+                self.executeState(choice.outState)
+                break
 
 if __name__ == "__main__":
 
     def printCoucou():
-        print "coucou"
+        print "coucou 1"
 
     def printBonjour():
-        print "bonjour"
+        print "bonjour 2"
 
-    st = StateChart()
+    def printHello():
+        print "hello 3"
+
+    def printHola():
+        print "hola 4"
+
+    st = StateChart("Lifeness")
     st.createState("first", printCoucou)
     st.createState("second", printBonjour)
-    st.createTransition("first", "second", "move(nao1,)")
+    st.createState("third", printHello)
+    st.createState("forth", printHola)
+    st.createTransition("first", "second")
+    st.createMultiChoiceTransition()\
+        .fromState("second")\
+            .ifCondition("condition(un)").goTo("third") \
+            .elifCondition("condition(deux)").goTo("third")\
+            .elseCondition().goTo("forth")\
+        .create()
     st.setStartingPoint("first")
