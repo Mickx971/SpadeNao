@@ -293,9 +293,6 @@ class StateChart(OneShotBehaviour, BeliefListener):
                 else:
                     self.tryToExecuteTransition(transition)
 
-        for t in self.waitingTransitions:
-            print t.getStatus()
-
         self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
 
     def tryToExecuteTransition(self, transition):
