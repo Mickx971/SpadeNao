@@ -77,9 +77,6 @@ class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
         except:
             traceback.print_exc()
 
-    def done(self):
-        return True
-
 
 class EventBehaviour(spade.Behaviour.EventBehaviour):
     def __init__(self, name, ontology=None):

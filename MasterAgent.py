@@ -22,12 +22,16 @@ if __name__ == "__main__":
     def printAurevoir():
         print "Au revoir"
 
+    def printSix():
+        print "six"
+
     st = StateChart("Liveness")
     st.createState("first", printCoucou)
     st.createState("second", printBonjour)
     st.createState("third", printHello)
     st.createState("forth", printHola)
     st.createsSyncState("fith", printAurevoir)
+    st.createState("six", printSix)
     st.createTransition("first", "second")
     st.createMultiChoiceTransition()\
         .fromState("second")\
@@ -37,6 +41,7 @@ if __name__ == "__main__":
         .create()
     st.createTransition("first", "fith")
     st.createTransition("forth", "fith")
+    st.createTransition("fith", "six", "six")
     st.setStartingPoint("first")
 
     nao = AgentBuilder()\

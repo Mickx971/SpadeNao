@@ -1,5 +1,5 @@
 from collections import defaultdict
-from community.core import Behaviour
+from community.core import OneShotBehaviour
 from community.structure import Task
 from community.structure import BeliefListener
 
@@ -204,7 +204,7 @@ class MultiChoiceTransitionBuilder:
             raise RuntimeError("Fail to create MultiChoiceTransition")
 
 
-class StateChart(Behaviour, BeliefListener):
+class StateChart(OneShotBehaviour, BeliefListener):
     def __init__(self, name):
         super(StateChart, self).__init__(name)
         self.states = dict()
@@ -256,8 +256,10 @@ class StateChart(Behaviour, BeliefListener):
 
     def performParallelTransition(self, transition):
         if transition.condition is None or self.myAgent.askBelieve(transition.condition):
+
             def transtionCallback(stateInstance):
                 self.onActionPerformed(stateInstance)
+
             self.executeState(transition.outState, transtionCallback)
         else:
             self.waitingTransitions.append(TransitionInstance(transition))
@@ -265,8 +267,10 @@ class StateChart(Behaviour, BeliefListener):
     def performMultiChoiceTransition(self, multiChoice):
         for choice in multiChoice.transitions:
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
+
                 def transtionCallback(stateInstance):
                     self.onActionPerformed(stateInstance)
+
                 self.executeState(choice.outState, transtionCallback)
                 break
         else:
@@ -297,24 +301,33 @@ class StateChart(Behaviour, BeliefListener):
     def tryToExecuteTransition(self, transition):
         if self.myAgent.askBelieve(transition.getCondition()) is True:
             transition.setRunning()
+
             def transtionCallback(stateInstance):
                 transition.done()
                 self.onActionPerformed(stateInstance)
+
             self.executeState(transition.getOutState(), transtionCallback)
 
     def tryToExecuteMultiChoiceTransition(self, multiChoiceTransition):
         for choice in multiChoiceTransition.getChoices():
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
                 multiChoiceTransition.setRunning()
+
                 def transtionCallback(stateInstance):
                     multiChoiceTransition.done()
                     self.onActionPerformed(stateInstance)
+
                 self.executeState(choice.outState)
                 break
 
     def process(self):
         if not self.started:
             self.started = True
+
             def transtionCallback(stateInstance):
                 self.onActionPerformed(stateInstance)
+
             self.executeState(self.startState, transtionCallback)
+
+    def done(self):
+        return self.started
