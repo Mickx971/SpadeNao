@@ -19,11 +19,15 @@ if __name__ == "__main__":
     def printHola():
         print "hola 4"
 
+    def printAurevoir():
+        print "Au revoir"
+
     st = StateChart("Liveness")
     st.createState("first", printCoucou)
     st.createState("second", printBonjour)
     st.createState("third", printHello)
     st.createState("forth", printHola)
+    #st.createsSyncState("fith", printAurevoir)
     st.createTransition("first", "second")
     st.createMultiChoiceTransition()\
         .fromState("second")\
@@ -31,6 +35,8 @@ if __name__ == "__main__":
             .elifCondition("condition(deux)").goTo("third")\
             .elseCondition().goTo("forth")\
         .create()
+    #st.createTransition("first", "fith")
+    #st.createTransition("forth", "fith")
     st.setStartingPoint("first")
 
     nao = AgentBuilder()\
