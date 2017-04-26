@@ -25,15 +25,16 @@ class State:
 
 
 class StateInstance(Task):
-    def __init__(self, stateChart, state):
+    def __init__(self, stateChart, state, callback):
         self.stateChart = stateChart
         self.state = state
         self.syncCounter = 1
+        self.callback = callback
 
     def run(self):
         if self.syncCounter == self.state.syncCounter:
             self.state.action()
-            self.stateChart.onActionPerformed(self)
+            self.callback(self)
         else:
             self.syncCounter = self.syncCounter + 1
 
@@ -105,6 +106,9 @@ class TransitionStatus:
 
     def isWaiting(self):
         return self.status == Transition.Status.WAITING
+
+    def getStatus(self):
+        return self.status
 
 
 class TransitionInstance(TransitionStatus):
@@ -241,6 +245,7 @@ class StateChart(Behaviour, BeliefListener):
         self.transitions[multiChoiceTransition.inState].append(multiChoiceTransition)
 
     def onActionPerformed(self, stateInstance):
+        self.stateInstances.pop(stateInstance.state, None)
         for transition in self.transitions[stateInstance.getState()]:
             if isinstance(transition, Transition):
                 self.performParallelTransition(transition)
@@ -251,22 +256,30 @@ class StateChart(Behaviour, BeliefListener):
 
     def performParallelTransition(self, transition):
         if transition.condition is None or self.myAgent.askBelieve(transition.condition):
-            self.executeState(transition.outState)
+            def transtionCallback(stateInstance):
+                self.onActionPerformed(stateInstance)
+            self.executeState(transition.outState, transtionCallback)
         else:
             self.waitingTransitions.append(TransitionInstance(transition))
 
     def performMultiChoiceTransition(self, multiChoice):
         for choice in multiChoice.transitions:
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
-                self.executeState(choice.outState)
+                def transtionCallback(stateInstance):
+                    self.onActionPerformed(stateInstance)
+                self.executeState(choice.outState, transtionCallback)
                 break
         else:
             self.waitingTransitions.append(MultiChoiceTransitionInstance(multiChoice))
 
-    def executeState(self, state):
-        if state not in self.stateInstances:
-            self.stateInstances[state] = StateInstance(self, state)
-        self.myAgent.getTaskExecutor().addTask(self.stateInstances[state])
+    def executeState(self, state, callback):
+        if state.isSyncState():
+            if state not in self.stateInstances:
+                self.stateInstances[state] = StateInstance(self, state, callback)
+            stateInstance = self.stateInstances[state]
+        else:
+            stateInstance = StateInstance(self, state, callback)
+        self.myAgent.getTaskExecutor().addTask(stateInstance)
 
     def onBeliefChanged(self, sentence):
         for transition in self.waitingTransitions:
@@ -276,21 +289,32 @@ class StateChart(Behaviour, BeliefListener):
                 else:
                     self.tryToExecuteTransition(transition)
 
+        for t in self.waitingTransitions:
+            print t.getStatus()
+
         self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
 
     def tryToExecuteTransition(self, transition):
         if self.myAgent.askBelieve(transition.getCondition()) is True:
             transition.setRunning()
-            self.executeState(transition.getOutState())
+            def transtionCallback(stateInstance):
+                transition.done()
+                self.onActionPerformed(stateInstance)
+            self.executeState(transition.getOutState(), transtionCallback)
 
     def tryToExecuteMultiChoiceTransition(self, multiChoiceTransition):
         for choice in multiChoiceTransition.getChoices():
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
                 multiChoiceTransition.setRunning()
+                def transtionCallback(stateInstance):
+                    multiChoiceTransition.done()
+                    self.onActionPerformed(stateInstance)
                 self.executeState(choice.outState)
                 break
 
     def process(self):
         if not self.started:
             self.started = True
-            self.executeState(self.startState)
+            def transtionCallback(stateInstance):
+                self.onActionPerformed(stateInstance)
+            self.executeState(self.startState, transtionCallback)
