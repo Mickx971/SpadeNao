@@ -4,9 +4,8 @@ from community.structure import Task
 from community.structure import BeliefListener
 
 
-class State(Task):
-    def __init__(self, stateChart, name, action, sync=False):
-        self.stateChart = stateChart
+class State:
+    def __init__(self, name, action, sync=False):
         self.name = name
         self.action = action
         self.sync = sync
@@ -24,9 +23,22 @@ class State(Task):
     def getSyncCounter(self):
         return self.syncCounter
 
+
+class StateInstance(Task):
+    def __init__(self, stateChart, state):
+        self.stateChart = stateChart
+        self.state = state
+        self.syncCounter = 0
+
     def run(self):
-        self.action()
-        self.stateChart.onActionPerformed(self)
+        if self.syncCounter == self.state.syncCounter:
+            self.state.action()
+            self.stateChart.onActionPerformed(self)
+        else:
+            self.syncCounter = self.syncCounter + 1
+
+    def getState(self):
+        return self.state
 
 
 class Transition:
@@ -195,6 +207,7 @@ class StateChart(Behaviour, BeliefListener):
         self.startState = None
         self.transitions = defaultdict(list)
         self.waitingTransitions = list()
+        self.stateInstances = dict()
         self.started = False
 
     def onStart(self):
@@ -205,7 +218,7 @@ class StateChart(Behaviour, BeliefListener):
         self.myAgent.removeBeliefListener(self)
 
     def createState(self, name, action, sync=False):
-        state = State(self, name, action, sync)
+        state = State(name, action, sync)
         self.states[name] = state
 
     def createsSyncState(self, name, action):
@@ -227,8 +240,8 @@ class StateChart(Behaviour, BeliefListener):
     def addMultiChoiceTransition(self, multiChoiceTransition):
         self.transitions[multiChoiceTransition.inState].append(multiChoiceTransition)
 
-    def onActionPerformed(self, state):
-        for transition in self.transitions[state]:
+    def onActionPerformed(self, stateInstance):
+        for transition in self.transitions[stateInstance.getState()]:
             if isinstance(transition, Transition):
                 self.performParallelTransition(transition)
             elif isinstance(transition, MultiChoiceTransition):
@@ -251,7 +264,9 @@ class StateChart(Behaviour, BeliefListener):
             self.waitingTransitions.append(MultiChoiceTransitionInstance(multiChoice))
 
     def executeState(self, state):
-        self.myAgent.getTaskExecutor().addTask(state)
+        if state not in self.stateInstances:
+            self.stateInstances[state] = StateInstance(self, state)
+        self.myAgent.getTaskExecutor().addTask(self.stateInstances[state])
 
     def onBeliefChanged(self, sentence):
         for transition in self.waitingTransitions:
