@@ -8,16 +8,16 @@ from community.stateChart import StateChart
 if __name__ == "__main__":
 
     def printCoucou():
-        print "coucou 1"
+        print "action: coucou"
 
     def printBonjour():
-        print "bonjour 2"
+        print "action: bonjour"
 
     def printHello():
-        print "hello 3"
+        print "action: hello"
 
     def printHola():
-        print "hola 4"
+        print "action: hola"
 
     def printAurevoir():
         print "Au revoir"
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     st.createState("second", printBonjour)
     st.createState("third", printHello)
     st.createState("forth", printHola)
-    #st.createsSyncState("fith", printAurevoir)
+    st.createsSyncState("fith", printAurevoir)
     st.createTransition("first", "second")
     st.createMultiChoiceTransition()\
         .fromState("second")\
@@ -35,8 +35,8 @@ if __name__ == "__main__":
             .elifCondition("condition(deux)").goTo("third")\
             .elseCondition().goTo("forth")\
         .create()
-    #st.createTransition("first", "fith")
-    #st.createTransition("forth", "fith")
+    st.createTransition("first", "fith")
+    st.createTransition("forth", "fith")
     st.setStartingPoint("first")
 
     nao = AgentBuilder()\

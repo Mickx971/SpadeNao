@@ -9,7 +9,7 @@ class State:
         self.name = name
         self.action = action
         self.sync = sync
-        self.syncCounter = 0
+        self.syncCounter = 0 if sync else 1
 
     def getName(self):
         return self.name
@@ -28,7 +28,7 @@ class StateInstance(Task):
     def __init__(self, stateChart, state):
         self.stateChart = stateChart
         self.state = state
-        self.syncCounter = 0
+        self.syncCounter = 1
 
     def run(self):
         if self.syncCounter == self.state.syncCounter:
