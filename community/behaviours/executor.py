@@ -19,7 +19,7 @@ class TaskExecutor(Behaviour):
 
     def process(self):
         try:
-            task = self.waitingTasks.get(True, 1)
+            task = self.waitingTasks.get(True, 2)
             task.run()
         except Empty:
             pass

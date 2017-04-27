@@ -1,5 +1,6 @@
 import spade
 import traceback
+from collections import defaultdict
 
 
 class Behaviour(spade.Behaviour.Behaviour):
@@ -25,7 +26,6 @@ class Behaviour(spade.Behaviour.Behaviour):
             self.process()
         except:
             traceback.print_exc()
-
 
 
 class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
@@ -138,7 +138,9 @@ class Agent(spade.Agent.Agent):
         self.behaviours = dict()
         self.initKB = initKB
         self.kbClosed = True
-        self.beliefListener = dict()
+        self.beliefListeners = set()
+        self.eventListeners = set()
+        self.believes = defaultdict(lambda: False)
         for behaviour in behaviours:
             self.behaviours[behaviour.getName()] = behaviour
 
@@ -152,15 +154,9 @@ class Agent(spade.Agent.Agent):
                 self.addBehaviour(behaviour)
 
     def initKnowledgeBase(self):
-        self.kbClosed = False
-        self.configureKB("SWI", None, "swipl")
-        self.kb.ask("set_prolog_flag(unknown, fail)")
         for fact in self.initKB:
             print "add fact: ", fact
             self.addBelieve(fact)
-        #Very important: initialize swipl connection
-        self.askBelieve("true")
-        print "Database opened"
 
     def _setup(self):
         try:
@@ -170,27 +166,33 @@ class Agent(spade.Agent.Agent):
             traceback.print_exc()
 
     def addBeliefListener(self, listener):
-        self.beliefListener[listener] = listener
+        self.beliefListeners.add(listener)
 
     def removeBeliefListener(self, listener):
-        self.beliefListener.pop(listener, None)
+        if listener in self.beliefListeners:
+            self.beliefListeners.remove(listener)
+
+    def addEventListener(self, listener):
+        self.eventListeners.add(listener)
+
+    def removeEventListener(self, listener):
+        if listener in self.eventListeners:
+            self.eventListeners.remove(listener)
 
     def askBelieve(self, sentence):
-        return super(Agent, self).askBelieve(sentence)
+        return self.believes[sentence]
+
+    def removeBelieve(self, sentence, type="delete"):
+        self.believes.pop(sentence, None)
 
     def addBelieve(self, sentence, typeAction="insert"):
-        super(Agent, self).addBelieve(sentence, typeAction)
-        for listener in self.beliefListener.itervalues():
+        self.believes[sentence] = True
+        for listener in self.beliefListeners:
             listener.onBeliefChanged(sentence)
 
-    def takeDown(self):
-        if not self.kbClosed:
-            self.kbClosed = True
-            try:
-                self.kb.ask("halt.")
-                print "Database closed"
-            except:
-                pass
+    def raiseEvent(self, event):
+        for listener in self.eventListeners:
+            listener.onEvent(event)
 
     def getTaskExecutor(self):
         executor = "TaskExecutor"
