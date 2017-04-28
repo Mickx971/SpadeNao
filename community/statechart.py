@@ -112,6 +112,12 @@ class MultiChoiceTransition:
                     return False
         return True
 
+    def getOutStates(self):
+        outStates = list()
+        for t in self.transitions:
+            outStates.append(t.outState)
+        return outStates
+
 
 class TransitionStatus:
     def __init__(self):
@@ -169,17 +175,18 @@ class MultiChoiceTransitionInstance(TransitionStatus):
 class MultiChoiceTransitionBuilder:
 
     class MultiChoiceConditionBuilder:
-        def __init__(self, multiChoice, sentence=None):
-            self.multiChoice = multiChoice
+        def __init__(self, multiChoiceBuilder, sentence=None):
+            self.multiChoiceBuilder = multiChoiceBuilder
             self.transition = Transition()
             self.transition.setCondition(sentence)
 
         def goTo(self, outStateName):
-            outState = self.multiChoice.stateChart.states[outStateName]
+            outState = self.multiChoiceBuilder.stateChart.states[outStateName]
             self.transition.setOutState(outState)
-            if outState.isSyncState():
+            isAlreadySync = 1 < len([o for o in self.multiChoiceBuilder.multiChoiceTransition.getOutStates() if outState == o])
+            if outState.isSyncState() and not isAlreadySync:
                 outState.addSyncCounter()
-            return self.multiChoice
+            return self.multiChoiceBuilder
 
     def __init__(self, stateChart):
         self.stateChart = stateChart
