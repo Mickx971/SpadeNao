@@ -140,6 +140,7 @@ class Agent(spade.Agent.Agent):
         self.kbClosed = True
         self.beliefListeners = set()
         self.eventListeners = set()
+        self.data = defaultdict(lambda: None)
         self.believes = defaultdict(lambda: False)
         for behaviour in behaviours:
             self.behaviours[behaviour.getName()] = behaviour
@@ -193,6 +194,12 @@ class Agent(spade.Agent.Agent):
     def raiseEvent(self, event):
         for listener in self.eventListeners:
             listener.onEvent(event)
+
+    def setData(self, key, value):
+        self.data[key] = value
+
+    def getData(self, key):
+        return self.data[key]
 
     def getTaskExecutor(self):
         executor = "TaskExecutor"
