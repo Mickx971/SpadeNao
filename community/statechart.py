@@ -34,8 +34,8 @@ class StateInstance(Task):
 
     def run(self):
         if self.syncCounter == self.state.syncCounter:
-            self.state.action(self.stateChart.myAgent)
-            self.callback(self)
+            res = self.state.action(self.stateChart.myAgent)
+            self.callback(self, res)
         else:
             self.syncCounter = self.syncCounter + 1
 
@@ -117,6 +117,13 @@ class MultiChoiceTransition:
         for t in self.transitions:
             outStates.append(t.outState)
         return outStates
+
+
+class SimpleTransition:
+    def __init__(self, inState, outState, onOutput):
+        self.inState = inState
+        self.outState = outState
+        self.onOutput = onOutput
 
 
 class TransitionStatus:
@@ -264,34 +271,52 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
     def setStartingPoint(self, stateName):
         self.startState = self.states[stateName]
 
-    def createTransition(self, fromStateName, toStateName, conditionSentence=None):
+    def createSimpleTransition(self, fromStateName, toStateName, onOutput):
+        s1 = self.states[fromStateName]
+        s2 = self.states[toStateName]
+        self.transitions[s1].append(SimpleTransition(s1, s2, onOutput))
+        if s2.isSyncState():
+            s2.addSyncCounter()
+
+    def createWaitingTransition(self, fromStateName, toStateName, conditionSentence=None):
         s1 = self.states[fromStateName]
         s2 = self.states[toStateName]
         self.transitions[s1].append(Transition(s1, s2, conditionSentence))
         if s2.isSyncState():
             s2.addSyncCounter()
 
-    def createMultiChoiceTransition(self):
+    def createMultiChoiceWaitingTransition(self):
         return MultiChoiceTransitionBuilder(self)
 
     def addMultiChoiceTransition(self, multiChoiceTransition):
         self.transitions[multiChoiceTransition.inState].append(multiChoiceTransition)
 
-    def onActionPerformed(self, stateInstance):
+    def onActionPerformed(self, stateInstance, output):
         self.stateInstances.pop(stateInstance.state, None)
         for transition in self.transitions[stateInstance.getState()]:
             if isinstance(transition, Transition):
                 self.performParallelTransition(transition)
             elif isinstance(transition, MultiChoiceTransition):
                 self.performMultiChoiceTransition(transition)
+            elif isinstance(transition, SimpleTransition):
+                self.performSimpleTransition(transition, output)
             else:
                 raise Exception("Unknown transition type")
+
+    def performSimpleTransition(self, transition, output):
+        if transition.onOutput == output:
+
+            def transtionCallback(stateInstance, output):
+                self.onActionPerformed(stateInstance, output)
+
+            self.executeState(transition.outState, transtionCallback)
+
 
     def performParallelTransition(self, transition):
         if transition.event is None and (transition.condition is None or self.myAgent.askBelieve(transition.condition)):
 
-            def transtionCallback(stateInstance):
-                self.onActionPerformed(stateInstance)
+            def transtionCallback(stateInstance, output):
+                self.onActionPerformed(stateInstance, output)
 
             self.executeState(transition.outState, transtionCallback)
         else:
@@ -301,8 +326,8 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
         for choice in multiChoice.transitions:
             if choice.event is None and (choice.condition is None or self.myAgent.askBelieve(choice.condition)):
 
-                def transtionCallback(stateInstance):
-                    self.onActionPerformed(stateInstance)
+                def transtionCallback(stateInstance, output):
+                    self.onActionPerformed(stateInstance, output)
 
                 self.executeState(choice.outState, transtionCallback)
                 break
@@ -341,9 +366,9 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
         if transition.getCondition() is None or self.myAgent.askBelieve(transition.getCondition()) is True:
             transition.setRunning()
 
-            def transtionCallback(stateInstance):
+            def transtionCallback(stateInstance, output):
                 transition.done()
-                self.onActionPerformed(stateInstance)
+                self.onActionPerformed(stateInstance, output)
 
             self.executeState(transition.getOutState(), transtionCallback)
 
@@ -354,9 +379,9 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
                 multiChoiceTransition.setRunning()
 
-                def transtionCallback(stateInstance):
+                def transtionCallback(stateInstance, output):
                     multiChoiceTransition.done()
-                    self.onActionPerformed(stateInstance)
+                    self.onActionPerformed(stateInstance, output)
 
                 self.executeState(choice.outState, transtionCallback)
                 break
@@ -365,8 +390,8 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
         if not self.started:
             self.started = True
 
-            def transtionCallback(stateInstance):
-                self.onActionPerformed(stateInstance)
+            def transtionCallback(stateInstance, output):
+                self.onActionPerformed(stateInstance, output)
 
             self.executeState(self.startState, transtionCallback)
 
