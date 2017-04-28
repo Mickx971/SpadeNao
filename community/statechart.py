@@ -395,63 +395,62 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
 
             self.executeState(self.startState, transtionCallback)
 
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            self.myAgent.addBelieve("coucou")
-            sleep(4)
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SIT_DOWN"
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            self.myAgent.addBelieve("bonjour")
-            self.myAgent.removeBelieve("coucou")
-            sleep(4)
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            print "send EVENT_ORDER_SAY_HI"
-            self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_STAND_UP"
-            self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SIT_DOWN"
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SIT_DOWN"
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SIT_DOWN"
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SIT_DOWN"
-            self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_SAY_HI"
-            self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
-            sleep(2)
-            print "send EVENT_ORDER_LISTEN"
-            self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            sleep(2)
-            print "send EVENT_ORDER_STAND_UP"
-            self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SAY_HI"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SIT_DOWN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
+            # print "send EVENT_ORDER_SAY_HI"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_STAND_UP"
+            # self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SIT_DOWN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SIT_DOWN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SIT_DOWN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SIT_DOWN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_SAY_HI"
+            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
+            # sleep(2)
+            # print "send EVENT_ORDER_LISTEN"
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # sleep(2)
+            # print "send EVENT_ORDER_STAND_UP"
+            # self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
 
     def done(self):
         return self.started
