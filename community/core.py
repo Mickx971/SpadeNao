@@ -3,17 +3,23 @@ import traceback
 from collections import defaultdict
 
 
-class Behaviour(spade.Behaviour.Behaviour):
-    def __init__(self, name, ontology=None):
-        super(Behaviour, self).__init__()
+class MessageListener:
+
+    def __init__(self, template=None):
+        self.template = template
+
+    def haveTemplate(self):
+        return self.template is not None
+
+    def getTemplate(self):
+        return self.template
+
+
+class Behaviour(spade.Behaviour.Behaviour, MessageListener):
+    def __init__(self, name, template=None):
+        MessageListener.__init__(self, template)
+        spade.Behaviour.Behaviour.__init__(self)
         self.name = name
-        self.ontology = ontology
-
-    def haveOntology(self):
-        return self.ontology is not None
-
-    def getOntology(self):
-        return self.ontology
 
     def getName(self):
         return self.name
@@ -28,17 +34,14 @@ class Behaviour(spade.Behaviour.Behaviour):
             traceback.print_exc()
 
 
-class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
-    def __init__(self, name, period, ontology=None):
-        super(PeriodicBehaviour, self).__init__(period)
+class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour, MessageListener):
+    def __init__(self, name, period, template=None):
+        spade.Behaviour.PeriodicBehaviour.__init__(self, period)
+        MessageListener.__init__(self, template)
         self.name = name
-        self.ontology = ontology
 
-    def haveOntology(self):
-        return self.ontology is not None
-
-    def getOntology(self):
-        return self.ontology
+    def getOn(self):
+        return self.template
 
     def getName(self):
         return self.name
@@ -53,17 +56,11 @@ class PeriodicBehaviour(spade.Behaviour.PeriodicBehaviour):
             traceback.print_exc()
 
 
-class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
-    def __init__(self, name, ontology=None):
-        super(OneShotBehaviour, self).__init__()
+class OneShotBehaviour(spade.Behaviour.OneShotBehaviour, MessageListener):
+    def __init__(self, name, template=None):
+        spade.Behaviour.OneShotBehaviour.__init__(self)
+        MessageListener.__init__(self, template)
         self.name = name
-        self.ontology = ontology
-
-    def haveOntology(self):
-        return self.ontology is not None
-
-    def getOntology(self):
-        return self.ontology
 
     def getName(self):
         return self.name
@@ -78,17 +75,11 @@ class OneShotBehaviour(spade.Behaviour.OneShotBehaviour):
             traceback.print_exc()
 
 
-class EventBehaviour(spade.Behaviour.EventBehaviour):
-    def __init__(self, name, ontology=None):
-        super(EventBehaviour, self).__init__()
+class EventBehaviour(spade.Behaviour.EventBehaviour, MessageListener):
+    def __init__(self, name, template=None):
+        spade.Behaviour.EventBehaviour.__init__(self)
+        MessageListener.__init__(self, template)
         self.name = name
-        self.ontology = ontology
-
-    def haveOntology(self):
-        return self.ontology is not None
-
-    def getOntology(self):
-        return self.ontology
 
     def getName(self):
         return self.name
@@ -103,17 +94,11 @@ class EventBehaviour(spade.Behaviour.EventBehaviour):
             traceback.print_exc()
 
 
-class FSMBehaviour(spade.Behaviour.FSMBehaviour):
-    def __init__(self, name, ontology=None):
-        super(FSMBehaviour, self).__init__()
+class FSMBehaviour(spade.Behaviour.FSMBehaviour, MessageListener):
+    def __init__(self, name, template=None):
+        spade.Behaviour.FSMBehaviour.__init__(self)
+        MessageListener.__init__(self, template)
         self.name = name
-        self.ontology = ontology
-
-    def haveOntology(self):
-        return self.ontology is not None
-
-    def getOntology(self):
-        return self.ontology
 
     def getName(self):
         return self.name
@@ -147,10 +132,8 @@ class Agent(spade.Agent.Agent):
 
     def initBehaviours(self):
         for behaviour in self.behaviours.itervalues():
-            if behaviour.haveOntology():
-                template = spade.Behaviour.ACLTemplate()
-                template.setOntology(behaviour.getOntology())
-                self.addBehaviour(behaviour, spade.Behaviour.MessageTemplate(template))
+            if behaviour.haveTemplate():
+                self.addBehaviour(behaviour, behaviour.getTemplate())
             else:
                 self.addBehaviour(behaviour)
 
