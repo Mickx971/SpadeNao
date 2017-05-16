@@ -18,6 +18,6 @@ class EventListener:
     def __init__(self):
         pass
 
-    def onEvent(self, event):
+    def onEvent(self, eventType, event):
         raise NotImplementedError
 

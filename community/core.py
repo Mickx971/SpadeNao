@@ -174,9 +174,9 @@ class Agent(spade.Agent.Agent):
         for listener in self.beliefListeners:
             listener.onBeliefChanged(sentence)
 
-    def raiseEvent(self, event):
+    def raiseEvent(self, eventType, event=None):
         for listener in self.eventListeners:
-            listener.onEvent(event)
+            listener.onEvent(eventType, event)
 
     def setData(self, key, value):
         self.data[key] = value

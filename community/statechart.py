@@ -31,10 +31,18 @@ class StateInstance(Task):
         self.state = state
         self.syncCounter = 1
         self.callback = callback
+        self.inputs = list()
+        self.eventInputs = list()
+
+    def addInput(self, input):
+        self.inputs.append(input)
+
+    def addEventInput(self, event):
+        self.eventInputs.append(event)
 
     def run(self):
         if self.syncCounter == self.state.syncCounter:
-            res = self.state.action(self.stateChart.myAgent)
+            res = self.state.action(self.stateChart.myAgent, self.inputs, self.eventInputs)
             self.callback(self, res)
         else:
             self.syncCounter = self.syncCounter + 1
@@ -88,6 +96,7 @@ def TransitionCondition(*conditions):
         raise RuntimeError("Condition can have only one event")
     s = ","
     return s.join(conditions)
+
 
 class MultiChoiceTransition:
     def __init__(self):
@@ -147,9 +156,10 @@ class TransitionStatus:
 
 
 class TransitionInstance(TransitionStatus):
-    def __init__(self, transition):
+    def __init__(self, transition, input):
         TransitionStatus.__init__(self)
         self.transition = transition
+        self.input = input
 
     def getCondition(self):
         return self.transition.condition
@@ -168,9 +178,10 @@ class TransitionInstance(TransitionStatus):
 
 
 class MultiChoiceTransitionInstance(TransitionStatus):
-    def __init__(self, multiChoiceTransition):
+    def __init__(self, multiChoiceTransition, input):
         TransitionStatus.__init__(self)
         self.multiChoiceTransition = multiChoiceTransition
+        self.input = input
 
     def getChoices(self):
         return self.multiChoiceTransition.transitions
@@ -295,9 +306,9 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
         self.stateInstances.pop(stateInstance.state, None)
         for transition in self.transitions[stateInstance.getState()]:
             if isinstance(transition, Transition):
-                self.performParallelTransition(transition)
+                self.performParallelTransition(transition, output)
             elif isinstance(transition, MultiChoiceTransition):
-                self.performMultiChoiceTransition(transition)
+                self.performMultiChoiceTransition(transition, output)
             elif isinstance(transition, SimpleTransition):
                 self.performSimpleTransition(transition, output)
             else:
@@ -309,58 +320,89 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
             def transtionCallback(stateInstance, output):
                 self.onActionPerformed(stateInstance, output)
 
-            self.executeState(transition.outState, transtionCallback)
+            self.executeState(transition.outState, transtionCallback, output, None)
 
 
-    def performParallelTransition(self, transition):
+    def performParallelTransition(self, transition, input):
         if transition.event is None and (transition.condition is None or self.myAgent.askBelieve(transition.condition)):
 
             def transtionCallback(stateInstance, output):
                 self.onActionPerformed(stateInstance, output)
 
-            self.executeState(transition.outState, transtionCallback)
+            self.executeState(transition.outState, transtionCallback, input, None)
         else:
-            self.waitingTransitions.append(TransitionInstance(transition))
+            self.waitingTransitions.append(TransitionInstance(transition, input))
 
-    def performMultiChoiceTransition(self, multiChoice):
+    def performMultiChoiceTransition(self, multiChoice, input):
         for choice in multiChoice.transitions:
             if choice.event is None and (choice.condition is None or self.myAgent.askBelieve(choice.condition)):
 
                 def transtionCallback(stateInstance, output):
                     self.onActionPerformed(stateInstance, output)
 
-                self.executeState(choice.outState, transtionCallback)
+                self.executeState(choice.outState, transtionCallback, input, None)
                 break
         else:
-            self.waitingTransitions.append(MultiChoiceTransitionInstance(multiChoice))
+            self.waitingTransitions.append(MultiChoiceTransitionInstance(multiChoice, input))
 
-    def executeState(self, state, callback):
+    def executeState(self, state, callback, input, event):
         if state.isSyncState():
             if state not in self.stateInstances:
                 self.stateInstances[state] = StateInstance(self, state, callback)
             stateInstance = self.stateInstances[state]
         else:
             stateInstance = StateInstance(self, state, callback)
+
+        stateInstance.addInput(input)
+        if event is not None:
+            stateInstance.addEventInput(event)
+
         self.myAgent.getTaskExecutor().addTask(stateInstance)
 
     def onBeliefChanged(self, sentence):
-        self.onChange(sentence)
-
-    def onEvent(self, event):
-        self.onChange(event, True)
-
-    def onChange(self, change, isEvent=False):
         for transition in self.waitingTransitions:
             if transition.isWaiting():
                 if transition.isMultiChoiceTransition():
-                    self.tryToExecuteMultiChoiceTransition(transition, change, isEvent)
+                    self.tryToExecuteMultiChoiceTransitionAfterBeliefChange(transition, sentence)
                 else:
-                    self.tryToExecuteTransition(transition, change, isEvent)
+                    self.tryToExecuteTransitionAfterBeliefChange(transition, sentence)
 
         self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
 
-    def tryToExecuteTransition(self, transition, change, isEvent):
-        if isEvent and not change == transition.getEvent():
+    def onEvent(self, eventType, event):
+        for transition in self.waitingTransitions:
+            if transition.isWaiting():
+                if transition.isMultiChoiceTransition():
+                    self.tryToExecuteMultiChoiceTransitionAfterEvent(transition, eventType, event)
+                else:
+                    self.tryToExecuteTransitionAfterEvent(transition, eventType, event)
+
+        self.waitingTransitions = [t for t in self.waitingTransitions if not t.isDone()]
+
+    def tryToExecuteTransitionAfterBeliefChange(self, transition, change):
+        if transition.getCondition() is None or self.myAgent.askBelieve(transition.getCondition()) is True:
+            transition.setRunning()
+
+            def transtionCallback(stateInstance, output):
+                transition.done()
+                self.onActionPerformed(stateInstance, output)
+
+            self.executeState(transition.getOutState(), transtionCallback, transition.input, None)
+
+    def tryToExecuteMultiChoiceTransitionAfterBeliefChange(self, multiChoiceTransition, change):
+        for choice in multiChoiceTransition.getChoices():
+            if choice.condition is None or self.myAgent.askBelieve(choice.condition):
+                multiChoiceTransition.setRunning()
+
+                def transtionCallback(stateInstance, output):
+                    multiChoiceTransition.done()
+                    self.onActionPerformed(stateInstance, output)
+
+                self.executeState(choice.outState, transtionCallback, multiChoiceTransition.input, None)
+                break
+
+    def tryToExecuteTransitionAfterEvent(self, transition, eventType, event):
+        if eventType != transition.getEvent():
             return
 
         if transition.getCondition() is None or self.myAgent.askBelieve(transition.getCondition()) is True:
@@ -370,11 +412,11 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
                 transition.done()
                 self.onActionPerformed(stateInstance, output)
 
-            self.executeState(transition.getOutState(), transtionCallback)
+            self.executeState(transition.getOutState(), transtionCallback, transition.input, event)
 
-    def tryToExecuteMultiChoiceTransition(self, multiChoiceTransition, change, isEvent):
+    def tryToExecuteMultiChoiceTransitionAfterEvent(self, multiChoiceTransition, eventType, event):
         for choice in multiChoiceTransition.getChoices():
-            if isEvent and not change == choice.event:
+            if eventType != choice.event:
                 continue
             if choice.condition is None or self.myAgent.askBelieve(choice.condition):
                 multiChoiceTransition.setRunning()
@@ -383,7 +425,7 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
                     multiChoiceTransition.done()
                     self.onActionPerformed(stateInstance, output)
 
-                self.executeState(choice.outState, transtionCallback)
+                self.executeState(choice.outState, transtionCallback, multiChoiceTransition.input, event)
                 break
 
     def process(self):
@@ -393,64 +435,23 @@ class EventFSMBehaviour(OneShotBehaviour, BeliefListener, EventListener):
             def transtionCallback(stateInstance, output):
                 self.onActionPerformed(stateInstance, output)
 
-            self.executeState(self.startState, transtionCallback)
+            self.executeState(self.startState, transtionCallback, None, None)
 
             # sleep(2)
             # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN", "1")
             # sleep(2)
-            # print "send EVENT_ORDER_SAY_HI"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
+            # print "send EVENT_TURTLE_SAY"
+            # self.myAgent.raiseEvent("EVENT_TURTLE_SAY", self)
             # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
+            # print "send EVENT_MOVE"
+            # self.myAgent.raiseEvent("EVENT_MOVE")
             # sleep(2)
-            # print "send EVENT_ORDER_SIT_DOWN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            # print "send EVENT_ORDER_SAY_HI"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
+            # print "send EVENT_TURTLE_SAY"
+            # self.myAgent.raiseEvent("EVENT_TURTLE_SAY", self)
             # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_STAND_UP"
-            # self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_SIT_DOWN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_SIT_DOWN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_SIT_DOWN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_SIT_DOWN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SIT_DOWN")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_SAY_HI"
-            # self.myAgent.raiseEvent("EVENT_ORDER_SAY_HI")
-            # sleep(2)
-            # print "send EVENT_ORDER_LISTEN"
-            # self.myAgent.raiseEvent("EVENT_ORDER_LISTEN")
-            # sleep(2)
-            # print "send EVENT_ORDER_STAND_UP"
-            # self.myAgent.raiseEvent("EVENT_ORDER_STAND_UP")
+            # print "send EVENT_MOVE"
+            # self.myAgent.raiseEvent("EVENT_MOVE")
 
     def done(self):
         return self.started
