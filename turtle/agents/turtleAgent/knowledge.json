@@ -1,0 +1,51 @@
+{
+  "turtle1":{
+    "pose":{
+        "salle1":{
+          "position": {"x": 0.574, "y": 3.395},
+          "quaterion": {"r1":0, "r2": 0, "r3":-0.706, "r4": 0.708}
+        },
+
+        "salle2":{
+          "position": {"x": 2.998, "y": 4.863},
+          "quaterion": {"r1":0, "r2": 0, "r3":-0.785, "r4": 0.619}
+        },
+
+        "salle3":{
+          "position": {"x": 8.322, "y": 4.430},
+          "quaterion": {"r1":0, "r2": 0, "r3":0.999, "r4": 0.037}
+        },
+
+        "principale":{
+          "position": {"x": 0, "y": 0},
+          "quaterion": {"r1":0, "r2": 0, "r3":0, "r4": 1}
+        }
+    },
+    "other": "Raphael"
+  },
+
+  "turtle2":{
+    "pose":{
+        "salle1":{
+          "position": {"x": 0.496, "y": 4.564},
+          "quaterion": {"r1":0, "r2": 0, "r3":-0.699, "r4": 0.715}
+        },
+
+        "salle2":{
+          "position": {"x": 5.362, "y": 4.993},
+          "quaterion": {"r1":0, "r2": 0, "r3":-0.656, "r4": 0.755}
+        },
+
+        "salle3":{
+          "position": {"x": 8.351, "y": 3.218},
+          "quaterion": {"r1":0, "r2": 0, "r3":0.998, "r4": -0.066}
+        },
+
+        "principale":{
+          "position": {"x": 0, "y": 0},
+          "quaterion": {"r1":0, "r2": 0, "r3":0.998, "r4": -0.066}
+        }
+    },
+    "other": "turtle2"
+  }
+}
