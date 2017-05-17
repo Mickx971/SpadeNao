@@ -5,25 +5,26 @@ Created on 28 April 2017
 @author: Mickaël Lafages
 @description: Nao respond to orders
 '''
-import naoutil.naoenv as naoenv
-import naoutil.memory as memory
+# import naoutil.naoenv as naoenv
+# import naoutil.memory as memory
 from community.core import Agent
-from naoutil.broker import Broker
-from fluentnao.nao import Nao
+# from naoutil.broker import Broker
+# from fluentnao.nao import Nao
 from community.statechart import EventFSMBehaviour
 from community.behaviours.executor import TaskExecutor
 from community.behaviours.system import SystemCore
 from nao.behaviours.communication import Communicator
 from time import sleep
-import qi
+# import qi
 from threading import Lock
 import json
+from collections import defaultdict
 
 
 class NaoAgent(Agent):
 
     def __init__(self, name, host, secret, selfIP):
-        self.naoqiInit(selfIP)
+        # self.naoqiInit(selfIP)
         behaviours = [SystemCore(), TaskExecutor(), self.createEventFSMBehaviour(), Communicator()]
         Agent.__init__(self, name, host, secret, behaviours, [])
 
@@ -85,7 +86,28 @@ class NaoAgent(Agent):
         communicator.sendPushOrder()
 
     def onHumanMoveEvent(myAgent, inputs, eventInputs):
-        myAgent.log("move", "onHumanMoveEvent")
+        msg = eventInputs[0]
+        content = msg.getContent().replace("\\\"", '"')
+        myAgent.log(content, "onHumanMoveEvent")
+        content = myAgent.parseAclMessageContent(content, True)
+        myAgent.say("La caméra indique un changement.")
+
+        pourcentage = int(float(content["prob"]) * 100)
+
+        speechEnd = " avec une fiabilité de " + str(pourcentage) + " pourcent."
+        speechBegin = "Elle détecte "
+
+        if content["nbFaces"] == 0:
+            myAgent.say("Elle ne détecte personne")
+        elif content["nbFaces"] == 1:
+            if content["nbMale"] == 1:
+                myAgent.say("un homme " + speechEnd)
+            else:
+                myAgent.say("une femme " + speechEnd)
+        else:
+            speech = speechBegin + str(content["nbFaces"]) + " personnes dont " + str(content["nbMale"]) + " hommes et " + str(content["nbFemale"]) + " femmes" + str(speechEnd)
+            myAgent.say(speech)
+
 
     def onTurtleMoveEvent(myAgent, inputs, eventInputs):
         myAgent.log(str(eventInputs[0]), "onTurtleMoveEvent")
@@ -233,6 +255,10 @@ class NaoAgent(Agent):
         self.destinationSpeech["salle2"] = "salle deux"
         self.destinationSpeech["salle3"] = "salle trois"
 
+        self.cameraEventSpeech = defaultdict(lambda : "")
+        self.cameraEventSpeech["moveIn"] = "La camera m'indique que quelqu'un est entré dans l'espace"
+        self.cameraEventSpeech["moveOut"] = "La camera m'indique que quelqu'un est sortie de l'espace"
+
     def createEventFSMBehaviour(self):
 
         LISTEN_CALL = "LISTEN_CALL"
@@ -297,10 +323,10 @@ class NaoAgent(Agent):
             .elifCondition(NaoAgent.EVENT_ORDER_STAND_UP).goTo(STAND_UP) \
             .elifCondition(NaoAgent.EVENT_SALLE_1_RAPHAEL).goTo(RAPHAEL_SALLE_1) \
             .elifCondition(NaoAgent.EVENT_SALLE_2_RAPHAEL).goTo(RAPHAEL_SALLE_2) \
-            .elifCondition(NaoAgent.EVENT_SALLE_2_RAPHAEL).goTo(RAPHAEL_SALLE_3) \
+            .elifCondition(NaoAgent.EVENT_SALLE_3_RAPHAEL).goTo(RAPHAEL_SALLE_3) \
             .elifCondition(NaoAgent.EVENT_SALLE_1_SAMIRA).goTo(SAMIRA_SALLE_1) \
             .elifCondition(NaoAgent.EVENT_SALLE_2_SAMIRA).goTo(SAMIRA_SALLE_2) \
-            .elifCondition(NaoAgent.EVENT_SALLE_2_SAMIRA).goTo(SAMIRA_SALLE_3) \
+            .elifCondition(NaoAgent.EVENT_SALLE_3_SAMIRA).goTo(SAMIRA_SALLE_3) \
             .elifCondition(NaoAgent.EVENT_RASSEMBLEMENT).goTo(RASSEMBLEMENT) \
             .elifCondition(NaoAgent.EVENT_POUSSEZ).goTo(POUSSEZ) \
             .create()
@@ -322,36 +348,38 @@ class NaoAgent(Agent):
         return evfsm
 
     def log(self, msg, module=""):
-        qi.logInfo(module, msg)
-        #print module, ":", msg
+        # qi.logInfo(module, msg)
+        print module, ":", msg
 
     def say(self, text):
         self.isAnimatedSay = False
         self.log(text)
-        self.nao.say(text)
+        # self.nao.say(text)
 
     def sayAnimated(self, text):
         self.isAnimatedSay = True
         self.log(text)
-        self.nao.animate_say(text)
+        # self.nao.animate_say(text)
 
-    def parseAclMessageContent(self, aclMessage):
+    def parseAclMessageContent(self, aclMessage, isString=False):
         def ascii_encode_dict(data):
-            return dict(map(lambda x: x.encode('ascii'), pair) for pair in data.items())
+            return dict(map(lambda x: x if not isinstance(x, unicode) else x.encode('ascii'), pair) for pair in data.items())
 
         try:
-            return json.loads(aclMessage.getContent(), object_hook=ascii_encode_dict)
+            if not isString :
+                return json.loads(aclMessage.getContent(), object_hook=ascii_encode_dict)
+            return json.loads(aclMessage, object_hook=ascii_encode_dict)
         except Exception as e:
             self.log(e.message, "Error: ")
             return None
 
     def takeDown(self):
         print "TakeDown"
-        self.memory.unsubscribeToEvent('WordRecognized')
-        self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
-        self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
+        #self.memory.unsubscribeToEvent('WordRecognized')
+        #self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
+        #self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
         # self.memory.unsubscribeToEvent('TouchChanged')
         # self.memory.unsubscribeToEvent('HandRightBackTouched')
         # self.memory.unsubscribeToEvent('HandRightLeftTouched')
         # self.memory.unsubscribeToEvent('HandRightRightTouched')
-        self.broker.shutdown()
+        #self.broker.shutdown()
