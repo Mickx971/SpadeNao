@@ -5,24 +5,25 @@ Created on 28 April 2017
 @author: Mickaël Lafages
 @description: Nao respond to orders
 '''
-#import naoutil.naoenv as naoenv
-#import naoutil.memory as memory
+import naoutil.naoenv as naoenv
+import naoutil.memory as memory
 from community.core import Agent
-#from naoutil.broker import Broker
-#from fluentnao.nao import Nao
+from naoutil.broker import Broker
+from fluentnao.nao import Nao
 from community.statechart import EventFSMBehaviour
 from community.behaviours.executor import TaskExecutor
 from community.behaviours.system import SystemCore
 from nao.behaviours.communication import Communicator
 from time import sleep
-#import qi
+import qi
 from threading import Lock
+import json
 
 
 class NaoAgent(Agent):
 
     def __init__(self, name, host, secret, selfIP):
-        #self.naoqiInit(selfIP)
+        self.naoqiInit(selfIP)
         behaviours = [SystemCore(), TaskExecutor(), self.createEventFSMBehaviour(), Communicator()]
         Agent.__init__(self, name, host, secret, behaviours, [])
 
@@ -38,67 +39,90 @@ class NaoAgent(Agent):
     EVENT_SALLE_3_SAMIRA = "EVENT_SALLE_3_SAMIRA"
     EVENT_RASSEMBLEMENT = "EVENT_RASSEMBLEMENT"
     EVENT_POUSSEZ = "EVENT_POUSSEZ"
-    EVENT_TURTLE_SAY = "EVENT_TURTLE_SAY"
+    EVENT_TURTLE_MOVE = "EVENT_TURTLE_MOVE"
+    EVENT_TURTLE_PUSH = "EVENT_TURTLE_PUSH"
     EVENT_MOVE = "EVENT_MOVE"
 
     def listenCall(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("listen Call", "LISTEN_CALL")
 
     def listenOrder(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("listenOrder", "LISTEN_ORDER")
         myAgent.say("J'écoute")
 
     def sitDown(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("sitDown", "SIT_DOWN")
-        #myAgent.nao.sit()
+        myAgent.nao.sit()
         return 0
 
     def standUp(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("standUp", "STAND_UP")
-        #myAgent.nao.stand()
+        myAgent.nao.stand()
         return 0
 
     def sayHi(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("sayHi", "SAY_HI")
         myAgent.sayAnimated("^start(animations/Stand/Gestures/Hey_1) Coucou ! ^wait(animations/Stand/Gestures/Hey_1)")
         return 0
 
     def createTurtleOrder(self, turtleName, orderName, data):
+
         def action(myAgent, inputs, eventInputs):
-            myAgent.log(inputs, "input")
-            myAgent.log(eventInputs, "eventInputs")
-            myAgent.say(orderName)
+            myAgent.say(turtleName + " va dans la " + self.destinationSpeech[data])
+            myAgent.behaviours["Communicator"].sendMoveOrder(turtleName, data)
+            return 0
+
         return action
 
     def sendGetherOrder(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("gether", "RASSEMBLEMENT")
+        communicator = myAgent.behaviours["Communicator"]
+        communicator.sendGetherOrder()
 
     def sendPushOrder(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("push", "POUSSEZ")
+        communicator = myAgent.behaviours["Communicator"]
+        communicator.sendPushOrder()
 
     def onHumanMoveEvent(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
         myAgent.log("move", "onHumanMoveEvent")
 
-    def onTurtleSayEvent(myAgent, inputs, eventInputs):
-        myAgent.log(inputs, "input")
-        myAgent.log(eventInputs, "eventInputs")
-        myAgent.log("turtleSay", "onTurtleSayEvent")
+    def onTurtleMoveEvent(myAgent, inputs, eventInputs):
+        myAgent.log(str(eventInputs[0]), "onTurtleMoveEvent")
+
+        msg = eventInputs[0]
+        communicator = myAgent.behaviours["Communicator"]
+
+        senderName = communicator.getSenderName(msg.getSender())
+        content = myAgent.parseAclMessageContent(msg)
+        actionName = content["action"]
+        status = content["status"]
+
+        if status == "succeeded":
+            speech = " a réussi à aller "
+        else:
+            speech = " n'a pas réussi à aller "
+
+        if actionName == "goNear":
+            speech = senderName + speech + " près de " + communicator.getOtherTurtleName(senderName)
+        else:
+            speech = senderName + speech + " dans la " + myAgent.destinationSpeech[actionName]
+
+        myAgent.say(speech)
+
+    def onTurtlePushEvent(myAgent, inputs, eventInputs):
+        myAgent.log("", "onTurtlePushEvent")
+
+        msg = eventInputs[0]
+        content = myAgent.parseAclMessageContent(msg)
+        status = content["status"]
+
+        if status != "succeeded":
+            speech = "Les tortues n'ont pas réussi à pousser la boîte"
+        else:
+            speech = "Les tortues ont réussi à pousser la boîte"
+
+        myAgent.say(speech)
 
     def naoqiInit(self, selfIP):
         speechEvents = dict()
@@ -132,9 +156,7 @@ class NaoAgent(Agent):
 
             for word in d:
                 self.log(word + " " + str(d[word]))
-                self.log("qdqdf " + word)
                 if d[word] > speechEvents[word][1]:
-                    self.log("1")
                     self.log(speechEvents[word][0])
                     self.raiseEvent(speechEvents[word][0])
                     return
@@ -206,6 +228,11 @@ class NaoAgent(Agent):
         # self.memory.subscribeToEvent('HandRightLeftTouched', rigthHandCallback)
         # self.memory.subscribeToEvent('HandRightRightTouched', rigthHandCallback)
 
+        self.destinationSpeech = dict()
+        self.destinationSpeech["salle1"] = "salle une"
+        self.destinationSpeech["salle2"] = "salle deux"
+        self.destinationSpeech["salle3"] = "salle trois"
+
     def createEventFSMBehaviour(self):
 
         LISTEN_CALL = "LISTEN_CALL"
@@ -222,7 +249,8 @@ class NaoAgent(Agent):
         RASSEMBLEMENT = "RASSEMBLEMENT"
         POUSSEZ = "POUSSEZ"
         ON_MOVE_EVENT = "ON_MOVE_EVENT"
-        ON_TURTLE_SAY_EVENT = "ON_TURTLE_SAY_EVENT"
+        ON_TURTLE_MOVE_EVENT = "ON_TURTLE_MOVE_EVENT"
+        ON_TURTLE_PUSH_EVENT = "ON_TURTLE_PUSH_EVENT"
         INIT = "INIT"
 
         def init(myAgent, inputs, eventInputs):
@@ -236,23 +264,26 @@ class NaoAgent(Agent):
         evfsm.createState(SIT_DOWN, NaoAgent.sitDown)
         evfsm.createState(STAND_UP, NaoAgent.standUp)
         evfsm.createState(SAY_HI, NaoAgent.sayHi)
-        evfsm.createState(RAPHAEL_SALLE_1, self.createTurtleOrder("Raphael", "goTo", "salle1"))
-        evfsm.createState(RAPHAEL_SALLE_2, self.createTurtleOrder("Raphael", "goTo", "salle2"))
-        evfsm.createState(RAPHAEL_SALLE_3, self.createTurtleOrder("Raphael", "goTo", "salle3"))
-        evfsm.createState(SAMIRA_SALLE_1, self.createTurtleOrder("Samira", "goTo", "salle1"))
-        evfsm.createState(SAMIRA_SALLE_2, self.createTurtleOrder("Samira", "goTo", "salle2"))
-        evfsm.createState(SAMIRA_SALLE_3, self.createTurtleOrder("Samira", "goTo", "salle3"))
+        evfsm.createState(RAPHAEL_SALLE_1, self.createTurtleOrder("raphael", "goTo", "salle1"))
+        evfsm.createState(RAPHAEL_SALLE_2, self.createTurtleOrder("raphael", "goTo", "salle2"))
+        evfsm.createState(RAPHAEL_SALLE_3, self.createTurtleOrder("raphael", "goTo", "salle3"))
+        evfsm.createState(SAMIRA_SALLE_1, self.createTurtleOrder("samira", "goTo", "salle1"))
+        evfsm.createState(SAMIRA_SALLE_2, self.createTurtleOrder("samira", "goTo", "salle2"))
+        evfsm.createState(SAMIRA_SALLE_3, self.createTurtleOrder("samira", "goTo", "salle3"))
         evfsm.createState(RASSEMBLEMENT, NaoAgent.sendGetherOrder)
         evfsm.createState(POUSSEZ, NaoAgent.sendPushOrder)
         evfsm.createState(ON_MOVE_EVENT, NaoAgent.onHumanMoveEvent)
-        evfsm.createState(ON_TURTLE_SAY_EVENT, NaoAgent.onTurtleSayEvent)
+        evfsm.createState(ON_TURTLE_MOVE_EVENT, NaoAgent.onTurtleMoveEvent)
+        evfsm.createState(ON_TURTLE_PUSH_EVENT, NaoAgent.onTurtlePushEvent)
 
         evfsm.createWaitingTransition(INIT, ON_MOVE_EVENT, NaoAgent.EVENT_MOVE)
-        evfsm.createWaitingTransition(INIT, ON_TURTLE_SAY_EVENT, NaoAgent.EVENT_TURTLE_SAY)
+        evfsm.createWaitingTransition(INIT, ON_TURTLE_MOVE_EVENT, NaoAgent.EVENT_TURTLE_MOVE)
+        evfsm.createWaitingTransition(INIT, ON_TURTLE_PUSH_EVENT, NaoAgent.EVENT_TURTLE_PUSH)
         evfsm.createWaitingTransition(INIT, LISTEN_CALL)
 
         evfsm.createWaitingTransition(ON_MOVE_EVENT, ON_MOVE_EVENT, NaoAgent.EVENT_MOVE)
-        evfsm.createWaitingTransition(ON_TURTLE_SAY_EVENT, ON_TURTLE_SAY_EVENT, NaoAgent.EVENT_TURTLE_SAY)
+        evfsm.createWaitingTransition(ON_TURTLE_MOVE_EVENT, ON_TURTLE_MOVE_EVENT, NaoAgent.EVENT_TURTLE_MOVE)
+        evfsm.createWaitingTransition(ON_TURTLE_PUSH_EVENT, ON_TURTLE_PUSH_EVENT, NaoAgent.EVENT_TURTLE_PUSH)
 
         evfsm.createMultiChoiceWaitingTransition()\
             .fromState(LISTEN_CALL)\
@@ -291,26 +322,36 @@ class NaoAgent(Agent):
         return evfsm
 
     def log(self, msg, module=""):
-        #qi.logInfo(module, msg)
-        print module, ":", msg
+        qi.logInfo(module, msg)
+        #print module, ":", msg
 
     def say(self, text):
-        #self.isAnimatedSay = False
+        self.isAnimatedSay = False
         self.log(text)
-        #self.nao.say(text)
+        self.nao.say(text)
 
     def sayAnimated(self, text):
-        #self.isAnimatedSay = True
+        self.isAnimatedSay = True
         self.log(text)
-        #self.nao.animate_say(text)
+        self.nao.animate_say(text)
+
+    def parseAclMessageContent(self, aclMessage):
+        def ascii_encode_dict(data):
+            return dict(map(lambda x: x.encode('ascii'), pair) for pair in data.items())
+
+        try:
+            return json.loads(aclMessage.getContent(), object_hook=ascii_encode_dict)
+        except Exception as e:
+            self.log(e.message, "Error: ")
+            return None
 
     def takeDown(self):
         print "TakeDown"
-        #self.memory.unsubscribeToEvent('WordRecognized')
-        #self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
-        #self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
+        self.memory.unsubscribeToEvent('WordRecognized')
+        self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
+        self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
         # self.memory.unsubscribeToEvent('TouchChanged')
         # self.memory.unsubscribeToEvent('HandRightBackTouched')
         # self.memory.unsubscribeToEvent('HandRightLeftTouched')
         # self.memory.unsubscribeToEvent('HandRightRightTouched')
-        #self.broker.shutdown()
+        self.broker.shutdown()
