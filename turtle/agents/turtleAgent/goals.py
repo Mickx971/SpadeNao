@@ -1,7 +1,9 @@
 
 class Goals:
 
-    action = {"goTo": 1, "goNear": 2}
-    state = {"suceeded": 1, "inProgress": 2, "failed": 3}
+
+    state = {"suceeded": "succeeded", "inProgress": "inProgress", "failed": "failed"}
+    tellTheNao = {"mustTellTheNao": "mustTellTheNao", "mustNotTellTheNao": "mustNotTellTheNao"}
+    otherStatus = {"ready": "ready", "nonReady": "nonReady", "cantPush": "cantPush"}
     def __init__(self):
         pass

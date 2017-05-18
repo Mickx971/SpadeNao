@@ -1,5 +1,5 @@
 import rospy
-rospy.init_node("raphael")
+rospy.init_node("samira")
 import spade
 from turtle.behaviours.goToBehaviour  import GoToPoseBehaviour
 from turtle.behaviours.waitMessageBehaviour import WaitMessageBehaviour
@@ -59,5 +59,5 @@ class TestAgent(TurtleAgent):
 
 
 if __name__ == "__main__":
-    agent = TestAgent("raphael", "127.0.0.1", "secret", receiveBehaviour=Communicator())
+    agent = TestAgent("samira", "127.0.0.1", "secret", receiveBehaviour=Communicator())
     agent.start()

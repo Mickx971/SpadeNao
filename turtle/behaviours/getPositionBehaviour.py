@@ -6,10 +6,8 @@ class GetPositionBehaviour(OneShotBehaviour):
 
     def process(self):
         print "process"
-        other = self.myAgent.getData("knowledge")["other"]
-        receiver = spade.AID.aid(other,
-                                 ["xmpp://"+other])
-        self.myAgent.setData("otherPosition",self.getAgentPosition(receiver))
+        other = self.myAgent.getData("otherTurtleAid")
+        self.myAgent.setData("otherPosition", self.getAgentPosition(other))
 
     def getAgentPosition(self, agentAid):
         positionRequest = spade.ACLMessage.ACLMessage()
@@ -17,6 +15,6 @@ class GetPositionBehaviour(OneShotBehaviour):
         positionRequest.setOntology("position")
         positionRequest.setContent("position")
         positionRequest.addReceiver(agentAid)
-        response = self.myAgent.sendMessageAndWaitForResponse(positionRequest)
+        response = self.myAgent.communicator.sendMessageAndWaitForResponse(positionRequest)
         response = json.loads(response.getContent())
         return response

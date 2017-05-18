@@ -26,6 +26,16 @@ class PositionService:
         p["position"][0] = p["position"][0] - 0.1
         return p
 
+    @staticmethod
+    def getCurrentPositionAsMap():
+        (pos, quat) = PositionService.getCurrentPosition()
+        position = {
+            "position": {"x": pos[0], "y": pos[1]},
+            "quaterion": {"r1": quat[0], "r2": quat[1],
+                          "r3": quat[2], "r4": quat[3]}
+        }
+        return position
+
 
 
 if __name__ == "__main__":
