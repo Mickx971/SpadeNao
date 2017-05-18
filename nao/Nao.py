@@ -76,20 +76,20 @@ class NaoAgent(Agent):
         return action
 
     def sendGetherOrder(myAgent, inputs, eventInputs):
-        myAgent.log("gether", "RASSEMBLEMENT")
+        myAgent.log("send gether order", "OnGetherOrder")
         communicator = myAgent.behaviours["Communicator"]
         communicator.sendGetherOrder()
 
     def sendPushOrder(myAgent, inputs, eventInputs):
-        myAgent.log("push", "POUSSEZ")
+        myAgent.log("send push order", "OnPushOrder")
         communicator = myAgent.behaviours["Communicator"]
         communicator.sendPushOrder()
 
     def onHumanMoveEvent(myAgent, inputs, eventInputs):
         msg = eventInputs[0]
         content = msg.getContent().replace("\\\"", '"')
-        myAgent.log(content, "onHumanMoveEvent")
         content = myAgent.parseAclMessageContent(content, True)
+        myAgent.log(content, "OnHumanMoveEvent")
         myAgent.say("La caméra indique un changement.")
 
         pourcentage = int(float(content["prob"]) * 100)
@@ -97,7 +97,7 @@ class NaoAgent(Agent):
         speechBegin = "Elle détecte "
         speechEnd = " avec une fiabilité de " + str(pourcentage) + " pourcent."
 
-        if content["acion"] == "detect_faces":
+        if content["action"] == "detect_faces":
             if content["nbFaces"] == 0:
                 myAgent.say("Elle ne détecte personne")
             elif content["nbFaces"] == 1:
@@ -109,14 +109,15 @@ class NaoAgent(Agent):
                 speech = speechBegin + str(content["nbFaces"]) + " personnes dont " + str(content["nbMale"]) + " hommes et " + str(content["nbFemale"]) + " femmes" + str(speechEnd)
                 myAgent.say(speech)
         else:
+            print content["classes"]
             if len(content["classes"]) > 0:
-                speech = speechBegin + " les choses suivantes: " + content["classes"].join(", ") + speechEnd
+                speech = speechBegin + " les choses suivantes: " + ", ".join(content["classes"])
             else:
                 speech = "Elle ne détecte rien du tout"
             myAgent.say(speech)
 
     def onTurtleMoveEvent(myAgent, inputs, eventInputs):
-        myAgent.log(str(eventInputs[0]), "onTurtleMoveEvent")
+        myAgent.log(str(eventInputs[0]), "OnTurtleMoveEvent")
 
         msg = eventInputs[0]
         communicator = myAgent.behaviours["Communicator"]
@@ -172,15 +173,12 @@ class NaoAgent(Agent):
 
             d = dict(zip(value[0::2], value[1::2]))
 
-            self.log("acquire with listening: " + str(self.isListening), "recognitionCallback")
             self.lock.acquire()
             if not self.isListening:
                 self.isListening = True
                 self.lock.release()
-                self.log("release 1", "recognitionCallback")
                 return
             self.lock.release()
-            self.log("release 2", "recognitionCallback")
 
             for word in d:
                 self.log(word + " " + str(d[word]))
@@ -193,32 +191,24 @@ class NaoAgent(Agent):
 
         def speechCallback(eventName, value, subscriberIdentifier):
             if value[1] in ["thrown", "stopped", "done"] and not self.isAnimatedSay:
-                self.log("acquire 1", "speechCallback")
                 self.lock.acquire()
                 self.isListening = False
                 self.lock.release()
-                self.log("release 1", "speechCallback")
 
                 sleep(2)
-                self.log("acquire 2", "speechCallback")
                 self.lock.acquire()
                 self.isListening = True
                 self.lock.release()
-                self.log("release 2", "speechCallback")
 
         def animatedSpeechCallback(eventName, taskId, subscriberIdentifier):
-            self.log("acquire 1", "animatedSpeechCallback")
             self.lock.acquire()
             self.isListening = False
             self.lock.release()
-            self.log("release 1", "animatedSpeechCallback")
 
             sleep(5)
-            self.log("acquire 2", "animatedSpeechCallback")
             self.lock.acquire()
             self.isListening = True
             self.lock.release()
-            self.log("release 2", "animatedSpeechCallback")
 
         def touchChangeCallback(eventName, touchInfo, subscriberIdentifier):
             for i in touchInfo:
@@ -356,21 +346,28 @@ class NaoAgent(Agent):
 
     def log(self, msg, module=""):
         qi.logInfo(module, msg)
-        print module, ":", msg
+        #print module, ":", msg
 
     def say(self, text):
         self.isAnimatedSay = False
-        self.log(text)
+        self.log(text, "Say")
         self.nao.say(text)
 
     def sayAnimated(self, text):
         self.isAnimatedSay = True
-        self.log(text)
+        self.log(text, "Say")
         self.nao.animate_say(text)
 
     def parseAclMessageContent(self, aclMessage, isString=False):
         def ascii_encode_dict(data):
-            return dict(map(lambda x: x if not isinstance(x, unicode) else x.encode('ascii'), pair) for pair in data.items())
+            if isinstance(data, dict):
+                return dict(map(ascii_encode_dict, pair) for pair in data.items())
+            elif isinstance(data, list):
+                return [ascii_encode_dict(e) for e in data]
+            elif isinstance(data, unicode):
+                return data.encode('ascii')
+            else:
+                return data
 
         try:
             if not isString :

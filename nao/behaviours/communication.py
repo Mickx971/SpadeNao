@@ -59,7 +59,7 @@ class Communicator(Behaviour):
                 if ontologyAction is not None:
                     ontologyAction(msg)
                 else:
-                    self.myAgent.log("Communicator: no action for ontology: " + msg.getOntology())
+                    self.myAgent.log("No action for ontology: " + msg.getOntology(), "Communicator")
             except ValueError:
                 pass
 
