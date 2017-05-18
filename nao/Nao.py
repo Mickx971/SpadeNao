@@ -5,17 +5,17 @@ Created on 28 April 2017
 @author: Mickaël Lafages
 @description: Nao respond to orders
 '''
-# import naoutil.naoenv as naoenv
-# import naoutil.memory as memory
+import naoutil.naoenv as naoenv
+import naoutil.memory as memory
 from community.core import Agent
-# from naoutil.broker import Broker
-# from fluentnao.nao import Nao
+from naoutil.broker import Broker
+from fluentnao.nao import Nao
 from community.statechart import EventFSMBehaviour
 from community.behaviours.executor import TaskExecutor
 from community.behaviours.system import SystemCore
 from nao.behaviours.communication import Communicator
 from time import sleep
-# import qi
+import qi
 from threading import Lock
 import json
 from collections import defaultdict
@@ -24,7 +24,7 @@ from collections import defaultdict
 class NaoAgent(Agent):
 
     def __init__(self, name, host, secret, selfIP):
-        # self.naoqiInit(selfIP)
+        self.naoqiInit(selfIP)
         behaviours = [SystemCore(), TaskExecutor(), self.createEventFSMBehaviour(), Communicator()]
         Agent.__init__(self, name, host, secret, behaviours, [])
 
@@ -94,20 +94,26 @@ class NaoAgent(Agent):
 
         pourcentage = int(float(content["prob"]) * 100)
 
-        speechEnd = " avec une fiabilité de " + str(pourcentage) + " pourcent."
         speechBegin = "Elle détecte "
+        speechEnd = " avec une fiabilité de " + str(pourcentage) + " pourcent."
 
-        if content["nbFaces"] == 0:
-            myAgent.say("Elle ne détecte personne")
-        elif content["nbFaces"] == 1:
-            if content["nbMale"] == 1:
-                myAgent.say("un homme " + speechEnd)
+        if content["acion"] == "detect_faces":
+            if content["nbFaces"] == 0:
+                myAgent.say("Elle ne détecte personne")
+            elif content["nbFaces"] == 1:
+                if content["nbMale"] == 1:
+                    myAgent.say("un homme " + speechEnd)
+                else:
+                    myAgent.say("une femme " + speechEnd)
             else:
-                myAgent.say("une femme " + speechEnd)
+                speech = speechBegin + str(content["nbFaces"]) + " personnes dont " + str(content["nbMale"]) + " hommes et " + str(content["nbFemale"]) + " femmes" + str(speechEnd)
+                myAgent.say(speech)
         else:
-            speech = speechBegin + str(content["nbFaces"]) + " personnes dont " + str(content["nbMale"]) + " hommes et " + str(content["nbFemale"]) + " femmes" + str(speechEnd)
+            if len(content["classes"]) > 0:
+                speech = speechBegin + " les choses suivantes: " + content["classes"].join(", ") + speechEnd
+            else:
+                speech = "Elle ne détecte rien du tout"
             myAgent.say(speech)
-
 
     def onTurtleMoveEvent(myAgent, inputs, eventInputs):
         myAgent.log(str(eventInputs[0]), "onTurtleMoveEvent")
@@ -254,6 +260,7 @@ class NaoAgent(Agent):
         self.destinationSpeech["salle1"] = "salle une"
         self.destinationSpeech["salle2"] = "salle deux"
         self.destinationSpeech["salle3"] = "salle trois"
+        self.destinationSpeech["principale"] = "salle principale"
 
         self.cameraEventSpeech = defaultdict(lambda : "")
         self.cameraEventSpeech["moveIn"] = "La camera m'indique que quelqu'un est entré dans l'espace"
@@ -348,18 +355,18 @@ class NaoAgent(Agent):
         return evfsm
 
     def log(self, msg, module=""):
-        # qi.logInfo(module, msg)
+        qi.logInfo(module, msg)
         print module, ":", msg
 
     def say(self, text):
         self.isAnimatedSay = False
         self.log(text)
-        # self.nao.say(text)
+        self.nao.say(text)
 
     def sayAnimated(self, text):
         self.isAnimatedSay = True
         self.log(text)
-        # self.nao.animate_say(text)
+        self.nao.animate_say(text)
 
     def parseAclMessageContent(self, aclMessage, isString=False):
         def ascii_encode_dict(data):
@@ -375,11 +382,11 @@ class NaoAgent(Agent):
 
     def takeDown(self):
         print "TakeDown"
-        #self.memory.unsubscribeToEvent('WordRecognized')
-        #self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
-        #self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
+        self.memory.unsubscribeToEvent('WordRecognized')
+        self.memory.unsubscribeToEvent('ALTextToSpeech/Status')
+        self.memory.unsubscribeToEvent('ALAnimatedSpeech/EndOfAnimatedSpeech')
         # self.memory.unsubscribeToEvent('TouchChanged')
         # self.memory.unsubscribeToEvent('HandRightBackTouched')
         # self.memory.unsubscribeToEvent('HandRightLeftTouched')
         # self.memory.unsubscribeToEvent('HandRightRightTouched')
-        #self.broker.shutdown()
+        self.broker.shutdown()
