@@ -89,6 +89,8 @@ class Communicator(Behaviour):
         msg.setContent("goNear")
         turtles = list()
         turtles.extend(self.aids.values())
-        msg.addReceiver(turtles[random.randint(0, 1)])
+        turtle = self.aids["samira"]
+        self.myAgent.log(turtle.getName(),"GETHER")
+        msg.addReceiver(turtle)
         self.myAgent.send(msg)
 

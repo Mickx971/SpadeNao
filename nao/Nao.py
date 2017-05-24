@@ -78,12 +78,16 @@ class NaoAgent(Agent):
     def sendGetherOrder(myAgent, inputs, eventInputs):
         myAgent.log("send gether order", "OnGetherOrder")
         communicator = myAgent.behaviours["Communicator"]
+        myAgent.say("Tortues rassemblez-vous!")
         communicator.sendGetherOrder()
+        return 0
 
     def sendPushOrder(myAgent, inputs, eventInputs):
         myAgent.log("send push order", "OnPushOrder")
         communicator = myAgent.behaviours["Communicator"]
+        myAgent.say("Tortues poussez la boite!")
         communicator.sendPushOrder()
+        return 0
 
     def onHumanMoveEvent(myAgent, inputs, eventInputs):
         msg = eventInputs[0]
@@ -166,7 +170,7 @@ class NaoAgent(Agent):
         speechEvents["Samira deuxième"] = [NaoAgent.EVENT_SALLE_2_SAMIRA, .30]
         speechEvents["Samira troisième"] = [NaoAgent.EVENT_SALLE_3_SAMIRA, .30]
         speechEvents["Rassemblement"] = [NaoAgent.EVENT_RASSEMBLEMENT, .35]
-        speechEvents["Poussez la boite"] = [NaoAgent.EVENT_POUSSEZ, .30]
+        #speechEvents["Poussez la boite"] = [NaoAgent.EVENT_POUSSEZ, .30]
 
         # callbacks
         def recognitionCallback(dataName, value, message):

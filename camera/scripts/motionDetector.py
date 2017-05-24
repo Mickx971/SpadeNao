@@ -23,7 +23,7 @@ class MotionDetector:
         fd, path = tempfile.mkstemp()
         os.write(fd, watsonResponse)
         now = datetime.now()
-        name = '%s-%s-%s::%s:%s:%s.%s.txt'%(now.year,now.month,now.day,now.hour,now.minute,now.second,now.microsecond)
+        name = '%s-%s-%s-%s-%s-%s.%s.txt'%(now.year,now.month,now.day,now.hour,now.minute,now.second,now.microsecond)
         os.system("scp " + path + " " + outputPath + "/" + name)
         os.remove(path)
 
@@ -34,10 +34,10 @@ class MotionDetector:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4 or (sys.argv[3] != "detect_faces" and sys.argv[3] != "classify") :
+    if len(sys.argv) < 4 or (sys.argv[1] != "detect_faces" and sys.argv[1] != "classify") :
         print "Error: no image input"
-        print "syntax: python motionDetector.py path/to/image/input.jpg <account>@<ip-adress>:path/to/analyse/dir/ (detect_faces|classify)"
+        print "syntax: python motionDetector.py (detect_faces|classify) path/to/image/input.jpg <account>@<ip-adress>:path/to/analyse/dir/"
 
     md = MotionDetector()
-    md.analyse(sys.argv[1], sys.argv[2], sys.argv[3] == "classify")
+    md.analyse(sys.argv[2], sys.argv[3], sys.argv[1] == "classify")
 
