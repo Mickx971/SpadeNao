@@ -163,9 +163,9 @@ class NaoAgent(Agent):
         speechEvents["Bonjour nao"] = [NaoAgent.EVENT_ORDER_SAY_HI, .40]
         speechEvents["Assieds-toi"] = [NaoAgent.EVENT_ORDER_SIT_DOWN, .40]
         speechEvents["Mets-toi debout"] = [NaoAgent.EVENT_ORDER_STAND_UP, .30]
-        speechEvents["Raphael un"] = [NaoAgent.EVENT_SALLE_1_RAPHAEL, .27]
-        speechEvents["Raphael deuxième"] = [NaoAgent.EVENT_SALLE_2_RAPHAEL, .30]
-        speechEvents["Raphael troisième"] = [NaoAgent.EVENT_SALLE_3_RAPHAEL, .30]
+        speechEvents["Raphael go to the room number 1"] = [NaoAgent.EVENT_SALLE_1_RAPHAEL, .27]
+        speechEvents["Raphael go to the room number 2"] = [NaoAgent.EVENT_SALLE_2_RAPHAEL, .30]
+        speechEvents["Raphael go to the room number 3"] = [NaoAgent.EVENT_SALLE_3_RAPHAEL, .30]
         speechEvents["Samira un"] = [NaoAgent.EVENT_SALLE_1_SAMIRA, .27]
         speechEvents["Samira deuxième"] = [NaoAgent.EVENT_SALLE_2_SAMIRA, .30]
         speechEvents["Samira troisième"] = [NaoAgent.EVENT_SALLE_3_SAMIRA, .30]
@@ -226,7 +226,7 @@ class NaoAgent(Agent):
 
         # FluentNao
         self.nao = Nao(naoenv.make_environment(None))
-        self.nao.env.tts.setLanguage("French")
+        #self.nao.env.tts.setLanguage(language)
         self.memory = memory
 
         self.lock = Lock()
