@@ -1,0 +1,4 @@
+This JADE add-on is an XML-ACL Codec that implements the 
+FIPA Specifications no. 71 FIPA ACL Message Representation in XML Specification.
+Read the tutorial distributed with the JADE documentation
+for detailed instructions about how to install, compile and use it.
