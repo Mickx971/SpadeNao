@@ -13,12 +13,12 @@ class PositionService:
                 (trans, rot) = listener.lookupTransform("/map", "/base_link", rospy.Time(0))
                 return trans, rot
             except KeyboardInterrupt:
-                return [], []
+                return [0,0,0], [0,0,0,1]
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 print "exception1"
                 print i
                 rate.sleep()
-        return [], []
+        return [0,0,0], [0,0,0,1]
 
     @staticmethod
     def getBehidPosition(position):

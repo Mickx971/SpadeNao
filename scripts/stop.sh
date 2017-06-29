@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-sshpass -p "nao" ssh nao@172.27.96.22 'cd /home/nao/SpadeNao; python StopAgent.py nao1@172.27.96.23'
+sshpass -p "nao" ssh nao@192.168.43.102 'cd /home/nao/SpadeNao; python StopAgent.py nao1@192.168.43.171'

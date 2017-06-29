@@ -49,7 +49,7 @@ class NaoAgent(Agent):
 
     def listenOrder(myAgent, inputs, eventInputs):
         myAgent.log("listenOrder", "LISTEN_ORDER")
-        myAgent.say("J'écoute")
+        myAgent.say("i am listening")
 
     def sitDown(myAgent, inputs, eventInputs):
         myAgent.log("sitDown", "SIT_DOWN")
@@ -63,13 +63,13 @@ class NaoAgent(Agent):
 
     def sayHi(myAgent, inputs, eventInputs):
         myAgent.log("sayHi", "SAY_HI")
-        myAgent.sayAnimated("^start(animations/Stand/Gestures/Hey_1) Coucou ! ^wait(animations/Stand/Gestures/Hey_1)")
+        myAgent.sayAnimated("^start(animations/Stand/Gestures/Hey_1) Hello ! ^wait(animations/Stand/Gestures/Hey_1)")
         return 0
 
     def createTurtleOrder(self, turtleName, orderName, data):
 
         def action(myAgent, inputs, eventInputs):
-            myAgent.say(turtleName + " va dans la " + self.destinationSpeech[data])
+            myAgent.say(turtleName + " go to " + self.destinationSpeech[data])
             myAgent.behaviours["Communicator"].sendMoveOrder(turtleName, data)
             return 0
 
@@ -78,7 +78,7 @@ class NaoAgent(Agent):
     def sendGetherOrder(myAgent, inputs, eventInputs):
         myAgent.log("send gether order", "OnGetherOrder")
         communicator = myAgent.behaviours["Communicator"]
-        myAgent.say("Tortues rassemblez-vous!")
+        myAgent.say("")
         communicator.sendGetherOrder()
         return 0
 
@@ -132,14 +132,14 @@ class NaoAgent(Agent):
         status = content["status"]
 
         if status == "succeeded":
-            speech = " a réussi à aller "
+            speech = " has succeeded to go "
         else:
-            speech = " n'a pas réussi à aller "
+            speech = " has failed to go "
 
         if actionName == "goNear":
-            speech = senderName + speech + " près de " + communicator.getOtherTurtleName(senderName)
+            speech = senderName + speech + " Near " + communicator.getOtherTurtleName(senderName)
         else:
-            speech = senderName + speech + " dans la " + myAgent.destinationSpeech[actionName]
+            speech = senderName + speech + " to " + myAgent.destinationSpeech[actionName]
 
         myAgent.say(speech)
 
@@ -159,17 +159,17 @@ class NaoAgent(Agent):
 
     def naoqiInit(self, selfIP):
         speechEvents = dict()
-        speechEvents["nao écoute moi"] = [NaoAgent.EVENT_ORDER_LISTEN, .37]
-        speechEvents["Bonjour nao"] = [NaoAgent.EVENT_ORDER_SAY_HI, .40]
-        speechEvents["Assieds-toi"] = [NaoAgent.EVENT_ORDER_SIT_DOWN, .40]
-        speechEvents["Mets-toi debout"] = [NaoAgent.EVENT_ORDER_STAND_UP, .30]
-        speechEvents["Raphael go to the room number 1"] = [NaoAgent.EVENT_SALLE_1_RAPHAEL, .27]
-        speechEvents["Raphael go to the room number 2"] = [NaoAgent.EVENT_SALLE_2_RAPHAEL, .30]
-        speechEvents["Raphael go to the room number 3"] = [NaoAgent.EVENT_SALLE_3_RAPHAEL, .30]
-        speechEvents["Samira un"] = [NaoAgent.EVENT_SALLE_1_SAMIRA, .27]
-        speechEvents["Samira deuxième"] = [NaoAgent.EVENT_SALLE_2_SAMIRA, .30]
-        speechEvents["Samira troisième"] = [NaoAgent.EVENT_SALLE_3_SAMIRA, .30]
-        speechEvents["Rassemblement"] = [NaoAgent.EVENT_RASSEMBLEMENT, .35]
+        speechEvents["nao listen to me"] = [NaoAgent.EVENT_ORDER_LISTEN, .37]
+        speechEvents["Hello nao"] = [NaoAgent.EVENT_ORDER_SAY_HI, .40]
+        speechEvents["sit down"] = [NaoAgent.EVENT_ORDER_SIT_DOWN, .40]
+        speechEvents["Stand up"] = [NaoAgent.EVENT_ORDER_STAND_UP, .30]
+        speechEvents["Tell Raphael to go to the room number 1"] = [NaoAgent.EVENT_SALLE_1_RAPHAEL, .27]
+        speechEvents["Tell Raphael to go to the room number 2"] = [NaoAgent.EVENT_SALLE_2_RAPHAEL, .30]
+        speechEvents["Tell Raphael to go to the room number 3"] = [NaoAgent.EVENT_SALLE_3_RAPHAEL, .30]
+        speechEvents["Tell Samira to go to the room number 1"] = [NaoAgent.EVENT_SALLE_1_SAMIRA, .27]
+        speechEvents["Tell Samira to go to the room number 2"] = [NaoAgent.EVENT_SALLE_2_SAMIRA, .30]
+        speechEvents["Tell Samira to go to the room number 3"] = [NaoAgent.EVENT_SALLE_3_SAMIRA, .30]
+        speechEvents["Tell one turtle to go near the other"] = [NaoAgent.EVENT_RASSEMBLEMENT, .35]
         #speechEvents["Poussez la boite"] = [NaoAgent.EVENT_POUSSEZ, .30]
 
         # callbacks
@@ -191,7 +191,7 @@ class NaoAgent(Agent):
                     self.raiseEvent(speechEvents[word][0])
                     return
 
-            self.say("Je n'ai pas bien compris")
+            self.say("I did not understand")
 
         def speechCallback(eventName, value, subscriberIdentifier):
             if value[1] in ["thrown", "stopped", "done"] and not self.isAnimatedSay:
@@ -251,10 +251,10 @@ class NaoAgent(Agent):
         # self.memory.subscribeToEvent('HandRightRightTouched', rigthHandCallback)
 
         self.destinationSpeech = dict()
-        self.destinationSpeech["salle1"] = "salle une"
-        self.destinationSpeech["salle2"] = "salle deux"
-        self.destinationSpeech["salle3"] = "salle trois"
-        self.destinationSpeech["principale"] = "salle principale"
+        self.destinationSpeech["salle1"] = "the room 1"
+        self.destinationSpeech["salle2"] = "the room 2"
+        self.destinationSpeech["salle3"] = "the room 3"
+        self.destinationSpeech["principale"] = "the principal room"
 
         self.cameraEventSpeech = defaultdict(lambda : "")
         self.cameraEventSpeech["moveIn"] = "La camera m'indique que quelqu'un est entré dans l'espace"

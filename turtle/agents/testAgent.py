@@ -59,5 +59,5 @@ class TestAgent(TurtleAgent):
 
 
 if __name__ == "__main__":
-    agent = TestAgent("raphael", "127.0.0.1", "secret", receiveBehaviour=Communicator())
+    agent = TestAgent("raphael", "192.168.43.170", "secret", receiveBehaviour=Communicator())
     agent.start()
