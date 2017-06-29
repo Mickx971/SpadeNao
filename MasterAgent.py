@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 from nao.Nao import NaoAgent
+import sys
+import json
 
 
 if __name__ == "__main__":
 
-    NAO_NAME = "nao1"
-    PLATFORM_IP = "192.168.43.170"
-    SECRET = "secret"
-    SELF_IP = "192.168.43.102"
-    naoAgent = NaoAgent(NAO_NAME, PLATFORM_IP, SECRET, SELF_IP)
+    if len(sys.argv) < 2:
+        print "Error: No config file"
+        print "Usage: python MasterAgent.py path/to/config/file.ini"
+        exit(1)
+
+    config = json.loads(open(sys.argv[1]).read())
+
+    naoAgent = NaoAgent(config["agentName"], config["plateformIp"], config["plateformSecret"], config["naoIp"])
     naoAgent.start()
 

@@ -3,6 +3,7 @@ from community.core import OneShotBehaviour
 from community.structure import Task
 from community.structure import *
 from time import sleep
+import traceback
 
 
 class State:
@@ -42,7 +43,11 @@ class StateInstance(Task):
 
     def run(self):
         if self.syncCounter == self.state.syncCounter:
-            res = self.state.action(self.stateChart.myAgent, self.inputs, self.eventInputs)
+            res = None
+            try:
+                res = self.state.action(self.stateChart.myAgent, self.inputs, self.eventInputs)
+            except:
+                traceback.print_exc()
             self.callback(self, res)
         else:
             self.syncCounter = self.syncCounter + 1
