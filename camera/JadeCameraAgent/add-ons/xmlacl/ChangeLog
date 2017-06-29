@@ -1,0 +1,11 @@
+CHANGES IN v0.2 (initial release)
+==========================
+- Fixed encoding related bug ( end fipa-message tag was empty tag )
+- Fixed parser related bug ( was always using default parser )
+- Update documentation to show usage case
+
+	
+CHANGES in v2.4 (14 November 2001)
+===========
+- Fixed support for binary content
+- Fixed deprecated method calls
