@@ -78,7 +78,7 @@ class NaoAgent(Agent):
     def sendGetherOrder(myAgent, inputs, eventInputs):
         myAgent.log("send gether order", "OnGetherOrder")
         communicator = myAgent.behaviours["Communicator"]
-        myAgent.say("")
+        myAgent.say("Tortules ! Gather yourselves !")
         communicator.sendGetherOrder()
         return 0
 
@@ -94,30 +94,30 @@ class NaoAgent(Agent):
         content = msg.getContent().replace("\\\"", '"')
         content = myAgent.parseAclMessageContent(content, True)
         myAgent.log(content, "OnHumanMoveEvent")
-        myAgent.say("La caméra indique un changement.")
+        myAgent.say("The camera indicates a change.")
 
         pourcentage = int(float(content["prob"]) * 100)
 
-        speechBegin = "Elle détecte "
-        speechEnd = " avec une fiabilité de " + str(pourcentage) + " pourcent."
+        speechBegin = "It detects "
+        speechEnd = " with " + str(pourcentage) + " percent of fiability."
 
         if content["action"] == "detect_faces":
             if content["nbFaces"] == 0:
-                myAgent.say("Elle ne détecte personne")
+                myAgent.say("It detects no one")
             elif content["nbFaces"] == 1:
                 if content["nbMale"] == 1:
-                    myAgent.say("un homme " + speechEnd)
+                    myAgent.say("a man " + speechEnd)
                 else:
-                    myAgent.say("une femme " + speechEnd)
+                    myAgent.say("a woman " + speechEnd)
             else:
-                speech = speechBegin + str(content["nbFaces"]) + " personnes dont " + str(content["nbMale"]) + " hommes et " + str(content["nbFemale"]) + " femmes" + str(speechEnd)
+                speech = speechBegin + str(content["nbFaces"]) + " persons including " + str(content["nbMale"]) + " men et " + str(content["nbFemale"]) + " wemen" + str(speechEnd)
                 myAgent.say(speech)
         else:
             print content["classes"]
             if len(content["classes"]) > 0:
-                speech = speechBegin + " les choses suivantes: " + ", ".join(content["classes"])
+                speech = speechBegin + " the following things: " + ", ".join(content["classes"])
             else:
-                speech = "Elle ne détecte rien du tout"
+                speech = "It detects nothing."
             myAgent.say(speech)
 
     def onTurtleMoveEvent(myAgent, inputs, eventInputs):
